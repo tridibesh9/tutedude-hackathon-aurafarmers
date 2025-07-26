@@ -1,0 +1,451 @@
+/* General Container & Layout */
+.order-tracking-container {
+    min-height: 100vh;
+    background-color: #f9fafb;
+    /* gray-50 */
+    font-family: sans-serif;
+}
+
+.content-area {
+    padding: 1rem;
+    /* p-4 */
+}
+
+.orders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    /* space-y-4 */
+}
+
+/* Header & Tabs */
+.header {
+    background-color: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+    /* border-b border-gray-200 */
+    padding: 1rem;
+    /* p-4 */
+}
+
+.header-title {
+    font-size: 1.25rem;
+    /* text-xl */
+    font-weight: 700;
+    /* font-bold */
+    color: #111827;
+    /* text-gray-900 */
+}
+
+.tabs-container {
+    display: flex;
+    gap: 1rem;
+    /* space-x-4 */
+    margin-top: 1rem;
+    /* mt-4 */
+}
+
+.tab-button {
+    padding: 0.5rem 1rem;
+    /* px-4 py-2 */
+    border-radius: 9999px;
+    /* rounded-full */
+    font-size: 0.875rem;
+    /* text-sm */
+    font-weight: 500;
+    /* font-medium */
+    transition: background-color 0.2s, color 0.2s;
+    border: none;
+    cursor: pointer;
+}
+
+.tab-button.active {
+    background-color: #ea580c;
+    /* bg-orange-600 */
+    color: #ffffff;
+    /* text-white */
+}
+
+.tab-button.inactive {
+    background-color: #f3f4f6;
+    /* bg-gray-100 */
+    color: #374151;
+    /* text-gray-700 */
+}
+
+.tab-button.inactive:hover {
+    background-color: #e5e7eb;
+    /* hover:bg-gray-200 */
+}
+
+/* Status Badges */
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    /* px-3 py-1 */
+    border-radius: 9999px;
+    /* rounded-full */
+    font-size: 0.75rem;
+    /* text-xs */
+    font-weight: 600;
+    /* font-semibold */
+    display: inline-flex;
+    align-items: center;
+}
+
+.status-out-for-delivery {
+    background-color: #dbeafe;
+    /* bg-blue-100 */
+    color: #2563eb;
+    /* text-blue-600 */
+}
+
+.status-delivered {
+    background-color: #d1fae5;
+    /* bg-green-100 */
+    color: #059669;
+    /* text-green-600 */
+}
+
+.status-unknown {
+    background-color: #f3f4f6;
+    /* bg-gray-100 */
+    color: #4b5563;
+    /* text-gray-600 */
+}
+
+/* Live Order Card */
+.live-order-card {
+    background-color: #ffffff;
+    border-radius: 0.75rem;
+    /* rounded-xl */
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    /* shadow-sm */
+    border: 1px solid #f3f4f6;
+    /* border-gray-100 */
+    overflow: hidden;
+}
+
+.live-order-header {
+    background-image: linear-gradient(to right, #2563eb, #1d4ed8);
+    /* from-blue-600 to-blue-700 */
+    color: #ffffff;
+    padding: 1rem;
+    /* p-4 */
+}
+
+.flex-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.order-id-label {
+    font-size: 0.875rem;
+    /* text-sm */
+    opacity: 0.9;
+}
+
+.supplier-name-lg {
+    font-size: 1.125rem;
+    /* text-lg */
+    font-weight: 600;
+    /* font-semibold */
+}
+
+.map-placeholder {
+    height: 8rem;
+    /* h-32 */
+    background-image: linear-gradient(to bottom right, #d1fae5, #dbeafe);
+    /* from-green-100 to-blue-100 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.map-truck-icon {
+    color: #2563eb;
+    /* text-blue-600 */
+    margin: 0 auto 0.5rem auto;
+    /* mx-auto mb-2 */
+}
+
+.map-label {
+    font-size: 0.875rem;
+    /* text-sm */
+    font-weight: 600;
+    /* font-semibold */
+    color: #374151;
+    /* text-gray-700 */
+}
+
+.map-location {
+    font-size: 0.75rem;
+    /* text-xs */
+    color: #4b5563;
+    /* text-gray-600 */
+}
+
+.order-details-section {
+    padding: 1rem;
+    /* p-4 */
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    /* space-y-4 */
+}
+
+.eta-info-box {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    /* space-x-3 */
+    background-color: #f0fdf4;
+    /* bg-green-50 */
+    padding: 0.75rem;
+    /* p-3 */
+    border-radius: 0.5rem;
+    /* rounded-lg */
+}
+
+.eta-icon {
+    color: #16a34a;
+    /* text-green-600 */
+}
+
+.info-box-title {
+    font-weight: 600;
+    /* font-semibold */
+    color: #1f2937;
+    /* text-gray-800 */
+}
+
+.eta-time {
+    font-size: 0.875rem;
+    /* text-sm */
+    color: #16a34a;
+    /* text-green-600 */
+}
+
+.items-label {
+    font-size: 0.875rem;
+    /* text-sm */
+    font-weight: 500;
+    /* font-medium */
+    color: #374151;
+    /* text-gray-700 */
+    margin-bottom: 0.5rem;
+    /* mb-2 */
+}
+
+.items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    /* space-y-1 */
+}
+
+.item-entry {
+    font-size: 0.875rem;
+    /* text-sm */
+    color: #4b5563;
+    /* text-gray-600 */
+}
+
+.driver-info-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    /* p-3 */
+    background-color: #f9fafb;
+    /* bg-gray-50 */
+    border-radius: 0.5rem;
+    /* rounded-lg */
+}
+
+.driver-details {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    /* space-x-3 */
+}
+
+.driver-avatar {
+    width: 2.5rem;
+    /* w-10 */
+    height: 2.5rem;
+    /* h-10 */
+    background-color: #ea580c;
+    /* bg-orange-600 */
+    color: #ffffff;
+    border-radius: 9999px;
+    /* rounded-full */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.driver-avatar-emoji {
+    font-size: 0.875rem;
+    /* text-sm */
+    font-weight: 700;
+    /* font-bold */
+}
+
+.driver-name {
+    font-weight: 600;
+    /* font-semibold */
+    color: #1f2937;
+    /* text-gray-800 */
+}
+
+.driver-label {
+    font-size: 0.875rem;
+    /* text-sm */
+    color: #4b5563;
+    /* text-gray-600 */
+}
+
+.driver-actions {
+    display: flex;
+    gap: 0.5rem;
+    /* space-x-2 */
+}
+
+.action-button {
+    padding: 0.5rem;
+    /* p-2 */
+    color: #ffffff;
+    border-radius: 9999px;
+    /* rounded-full */
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.call-button {
+    background-color: #16a34a;
+    /* bg-green-600 */
+}
+
+.message-button {
+    background-color: #2563eb;
+    /* bg-blue-600 */
+}
+
+.total-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.5rem;
+    /* pt-2 */
+    border-top: 1px solid #e5e7eb;
+    /* border-t border-gray-200 */
+}
+
+.total-label {
+    font-weight: 600;
+    /* font-semibold */
+    color: #1f2937;
+    /* text-gray-800 */
+}
+
+.total-amount {
+    font-size: 1.125rem;
+    /* text-lg */
+    font-weight: 700;
+    /* font-bold */
+    color: #ea580c;
+    /* text-orange-600 */
+}
+
+/* History Order Card */
+.history-order-card {
+    background-color: #ffffff;
+    border-radius: 0.75rem;
+    /* rounded-xl */
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    /* shadow-sm */
+    border: 1px solid #f3f4f6;
+    /* border-gray-100 */
+    padding: 1rem;
+    /* p-4 */
+}
+
+.history-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    /* mb-3 */
+}
+
+.order-id-history {
+    font-weight: 600;
+    /* font-semibold */
+    color: #111827;
+    /* text-gray-900 */
+}
+
+.order-date {
+    font-size: 0.875rem;
+    /* text-sm */
+    color: #4b5563;
+    /* text-gray-600 */
+}
+
+.supplier-name-sm {
+    font-size: 0.875rem;
+    /* text-sm */
+    color: #374151;
+    /* text-gray-700 */
+}
+
+.status-icon {
+    display: inline;
+    margin-right: 0.25rem;
+    /* mr-1 */
+}
+
+.history-items-list {
+    margin-bottom: 0.75rem;
+    /* mb-3 */
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    /* space-y-2 */
+}
+
+.history-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.5rem;
+    /* pt-2 */
+    border-top: 1px solid #e5e7eb;
+    /* border-t border-gray-200 */
+}
+
+.reorder-button {
+    color: #ea580c;
+    /* text-orange-600 */
+    font-size: 0.875rem;
+    /* text-sm */
+    font-weight: 500;
+    /* font-medium */
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.history-amount {
+    font-weight: 600;
+    /* font-semibold */
+    color: #1f2937;
+    /* text-gray-800 */
+}
+
+.text-center {
+    text-align: center;
+}

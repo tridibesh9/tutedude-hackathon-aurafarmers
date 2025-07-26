@@ -1,0 +1,507 @@
+/* General Styling & Variables */
+:root {
+    --blue-600: #2563eb;
+    --purple-600: #9333ea;
+    --green-600: #16a34a;
+    --green-100: #dcfce7;
+    --red-600: #dc2626;
+    --red-100: #fee2e2;
+    --orange-600: #ea580c;
+    --yellow-500: #eab308;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+    --gray-900: #11182c;
+    --white: #ffffff;
+}
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+        sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: var(--gray-50);
+}
+
+.font-semibold {
+    font-weight: 600;
+}
+
+.font-bold {
+    font-weight: 700;
+}
+
+.font-medium {
+    font-weight: 500;
+}
+
+.text-sm {
+    font-size: 0.875rem;
+}
+
+.text-xs {
+    font-size: 0.75rem;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.text-muted {
+    color: var(--gray-600);
+}
+
+.text-light {
+    color: var(--gray-500);
+}
+
+.text-green {
+    color: var(--green-600);
+}
+
+.text-orange {
+    color: var(--orange-600);
+}
+
+.text-blue {
+    color: var(--blue-600);
+}
+
+.text-red {
+    color: var(--red-600);
+}
+
+/* Main Container */
+.container {
+    min-height: 100vh;
+    background-color: var(--gray-50);
+}
+
+/* Header */
+.header {
+    background-image: linear-gradient(to right, var(--blue-600), var(--purple-600));
+    color: var(--white);
+    padding: 1rem;
+}
+
+.header h1 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.header p {
+    color: #dbeafe;
+    /* blue-100 */
+    margin: 0.25rem 0 0;
+}
+
+/* Balance & Credit Cards */
+.balance-card {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.balance-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+
+.balance-label {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+.balance-amount {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.balance-amount.due {
+    color: #fecaca;
+}
+
+/* red-200 */
+.balance-amount.paid {
+    color: #bbf7d0;
+}
+
+/* green-200 */
+.due-label {
+    font-size: 0.875rem;
+    margin-left: 0.25rem;
+}
+
+.credit-score {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.credit-bar-container {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+}
+
+.credit-bar-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+
+.credit-bar-background {
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.3);
+    border-radius: 9999px;
+    height: 0.5rem;
+}
+
+.credit-bar-progress {
+    background-color: #4ade80;
+    /* green-400 */
+    height: 0.5rem;
+    border-radius: 9999px;
+    transition: width 0.3s ease-in-out;
+}
+
+/* Tabs */
+.tabs-container {
+    background-color: var(--white);
+    border-bottom: 1px solid var(--gray-200);
+    padding: 1rem;
+}
+
+.tabs {
+    display: flex;
+    gap: 1rem;
+}
+
+.tab-button {
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+    border: none;
+    cursor: pointer;
+    background-color: var(--gray-100);
+    color: var(--gray-700);
+}
+
+.tab-button:hover {
+    background-color: var(--gray-200);
+}
+
+.tab-button.active {
+    background-color: var(--blue-600);
+    color: var(--white);
+}
+
+/* Content Area */
+.content {
+    padding: 1rem;
+}
+
+.content-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Generic Card */
+.card {
+    background-color: var(--white);
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    border: 1px solid var(--gray-100);
+    padding: 1rem;
+}
+
+.card-title {
+    font-weight: 600;
+    color: var(--gray-900);
+    margin-bottom: 0.75rem;
+    margin-top: 0;
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+
+.card-header .card-title {
+    margin-bottom: 0;
+}
+
+
+/* Overview Tab */
+.quick-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.action-button {
+    color: var(--white);
+    padding: 1rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: none;
+    cursor: pointer;
+}
+
+.action-button.add-money {
+    background-color: var(--green-600);
+}
+
+.action-button.add-money:hover {
+    background-color: #15803d;
+}
+
+.action-button.use-bnpl {
+    background-color: var(--orange-600);
+}
+
+.action-button.use-bnpl:hover {
+    background-color: #c2410c;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.summary-item {
+    text-align: center;
+}
+
+.summary-amount {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.summary-amount.spent {
+    color: var(--red-600);
+}
+
+.summary-amount.deposited {
+    color: var(--green-600);
+}
+
+.summary-label {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+}
+
+.reminder-card {
+    background-image: linear-gradient(to right, #fef3c7, #fed7aa);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    border: 1px solid #fde68a;
+}
+
+.reminder-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.reminder-icon-container {
+    width: 2rem;
+    height: 2rem;
+    background-color: var(--yellow-500);
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.reminder-icon-container .icon {
+    color: var(--white);
+}
+
+.pay-now-button {
+    padding: 0.25rem 0.75rem;
+    background-color: var(--yellow-500);
+    color: var(--white);
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    margin-left: auto;
+}
+
+.credit-health-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+}
+
+/* Transactions Tab */
+.transaction-item {
+    padding: 1rem;
+}
+
+.transaction-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.transaction-icon-container {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.transaction-icon-container.credit {
+    background-color: var(--green-100);
+    color: var(--green-600);
+}
+
+.transaction-icon-container.debit {
+    background-color: var(--red-100);
+    color: var(--red-600);
+}
+
+.transaction-details {
+    flex-grow: 1;
+}
+
+.transaction-amount {
+    font-size: 1.125rem;
+    font-weight: 700;
+}
+
+.transaction-amount.credit {
+    color: var(--green-600);
+}
+
+.transaction-amount.debit {
+    color: var(--red-600);
+}
+
+/* Credit Tab */
+.credit-limit-card {
+    background-image: linear-gradient(to right, var(--purple-600), var(--blue-600));
+    color: var(--white);
+    border-radius: 0.75rem;
+    padding: 1rem;
+}
+
+.credit-limit-card .icon {
+    opacity: 0.8;
+}
+
+.credit-limit-label {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+.credit-limit-amount {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.credit-limit-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.benefits-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.benefit-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.benefit-icon-container {
+    width: 1.5rem;
+    height: 1.5rem;
+    background-color: var(--green-100);
+    color: var(--green-600);
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.benefit-tick {
+    font-size: 0.75rem;
+}
+
+.increase-limit-card {
+    background-image: linear-gradient(to right, #ffedd5, #fef3c7);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    border: 1px solid #fed7aa;
+}
+
+.increase-limit-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.apply-button {
+    padding: 0.5rem 1rem;
+    background-color: var(--orange-600);
+    color: var(--white);
+    border-radius: 0.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    border: none;
+    cursor: pointer;
+}
+
+.payment-schedule-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.upcoming-payment-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    background-color: var(--gray-50);
+    border-radius: 0.5rem;
+}
