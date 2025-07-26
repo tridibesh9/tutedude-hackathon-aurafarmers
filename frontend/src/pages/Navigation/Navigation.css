@@ -1,163 +1,186 @@
-/* General styling for the navigation bar */
-.navigation-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: #ffffff;
-    border-top: 1px solid #e5e7eb;
-    /* border-gray-200 */
-    padding: 0.5rem;
-    /* px-2 py-2 */
-    z-index: 50;
-}
-
-/* Container for the navigation items */
-.navigation-container {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    max-width: 28rem;
-    /* max-w-md */
-    margin-left: auto;
-    margin-right: auto;
-}
-
-/* Styling for each navigation button */
-.nav-button {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 0.5rem;
-    /* p-2 */
-    border-radius: 0.5rem;
-    /* rounded-lg */
-    transition: all 0.2s ease-in-out;
-    /* transition-all duration-200 */
-    color: #4b5563;
-    /* text-gray-600 */
-    background-color: transparent;
-    border: none;
-    cursor: pointer;
-    font-family: inherit;
-}
-
-/* Hover state for the navigation button */
-.nav-button:hover {
-    color: #f97316;
-    /* hover:text-orange-500 */
-    background-color: #f9fafb;
-    /* hover:bg-gray-50 */
-}
-
-/* Active state for the navigation button */
-.nav-button.active {
-    color: #ea580c;
-    /* text-orange-600 */
-    background-color: #fff7ed;
-    /* bg-orange-50 */
-}
-
-/* Styling for the icon inside the button */
-.nav-button .icon {
-    margin-bottom: 0.25rem;
-    /* mb-1 */
-}
-
-/* Styling for the text label inside the button */
-.nav-button .nav-label {
-    font-size: 0.75rem;
-    /* text-xs */
-    line-height: 1rem;
-    font-weight: 500;
-    /* font-medium */
-}
-
-.better-nav {
+/* Modern bottom navigation bar */
+.bottom-nav {
   position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #fff;
-  border-radius: 2rem;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.10), 0 1.5px 6px rgba(0,0,0,0.06);
-  padding: 0.5rem 1.5rem;
-  z-index: 100;
-  max-width: 420px;
-  width: 90vw;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.08);
+  z-index: 50;
+  padding: 8px 12px calc(8px + var(--safe-area-inset-bottom));
   display: flex;
   justify-content: center;
+  transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
-.better-nav-list {
+.bottom-nav-content {
   display: flex;
-  gap: 0.5rem;
+  gap: 4px;
   width: 100%;
+  max-width: 480px;
   justify-content: space-between;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  align-items: center;
 }
 
-.better-nav-li {
-  flex: 1;
-  display: flex;
-  justify-content: center;
+@media (min-width: 640px) {
+  .bottom-nav {
+    bottom: 24px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    border-radius: 24px;
+    padding: 12px;
+    width: auto;
+  }
+
+  .bottom-nav-content {
+    gap: 8px;
+  }
 }
 
-.better-nav-item {
+/* Hide navigation when scrolling down */
+.bottom-nav.hidden {
+  transform: translate(-50%, 100px);
+  opacity: 0;
+}
+
+/* Navigation item styling */
+.nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0.6rem 0.5rem;
-  border-radius: 1rem;
-  color: #6b7280;
+  padding: 6px 8px;
+  border-radius: 12px;
+  color: #64748b;
   text-decoration: none;
-  font-size: 0.95rem;
-  font-weight: 500;
-  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
-  outline: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  min-width: 48px;
+  flex: 1;
+  max-width: 80px;
 }
 
-.better-nav-item:hover,
-.better-nav-item:focus {
-  background: #f3f4f6;
+@media (min-width: 640px) {
+  .nav-item {
+    padding: 8px 16px;
+    min-width: 64px;
+    flex: 0 1 auto;
+  }
+}
+
+.nav-item:hover {
   color: #ea580c;
-  box-shadow: 0 2px 8px rgba(234,88,12,0.08);
+  background: rgba(234, 88, 12, 0.08);
 }
 
-.better-nav-item.active {
-  background: #fff7ed;
+/* Active state with subtle animation */
+.nav-item.active {
   color: #ea580c;
-  box-shadow: 0 2px 8px rgba(234,88,12,0.12);
+  background: rgba(234, 88, 12, 0.12);
+  transform: translateY(-2px);
 }
 
-.better-nav-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 0.18rem;
-  font-size: 1.35rem;
-  height: 28px;
-  width: 28px;
+.nav-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  background: #ea580c;
+  border-radius: 50%;
 }
 
-.better-nav-label {
-  font-size: 0.78rem;
-  line-height: 1.1rem;
+/* Icon styling */
+.nav-item svg {
+  width: 20px;
+  height: 20px;
+  margin-bottom: 4px;
+  transition: transform 0.2s ease;
+}
+
+@media (min-width: 640px) {
+  .nav-item svg {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.nav-item:hover svg {
+  transform: scale(1.1);
+}
+
+.nav-item.active svg {
+  animation: iconPop 0.3s ease;
+}
+
+/* Label styling */
+.nav-item span {
+  font-size: 11px;
   font-weight: 500;
-  letter-spacing: 0.01em;
-  margin-top: 0.1rem;
+  white-space: nowrap;
+  opacity: 0.9;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  max-width: 100%;
   text-align: center;
 }
 
-@media (max-width: 600px) {
-  .better-nav {
-    padding: 0.5rem 0.5rem;
-    max-width: 98vw;
-    border-radius: 1.2rem;
+@media (min-width: 640px) {
+  .nav-item span {
+    font-size: 12px;
   }
-  .better-nav-label {
-    font-size: 0.7rem;
+}
+
+/* Animations */
+@keyframes iconPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* Media queries for responsiveness */
+@media (max-width: 640px) {
+  .bottom-nav {
+    bottom: 16px;
+    padding: 8px 12px;
+    border-radius: 20px;
+  }
+
+  .nav-item {
+    padding: 6px 12px;
+  }
+
+  .nav-item svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .nav-item span {
+    font-size: 11px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .bottom-nav {
+    background: rgba(30, 41, 59, 0.95);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  }
+
+  .nav-item {
+    color: #94a3b8;
+  }
+
+  .nav-item:hover,
+  .nav-item.active {
+    color: #fb923c;
+  }
+
+  .nav-item.active::after {
+    background: #fb923c;
   }
 }
