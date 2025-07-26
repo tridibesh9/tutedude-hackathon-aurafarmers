@@ -1,46 +1,59 @@
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
-from cassandra.cluster import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import UserProfileResponse, UserProfileUpdate, UserInDB
-from app.db.crud import update_user_in_db
-from app.core.security import get_current_user # This will now work if get_scylla_session is correctly used
-from app.db.scylla import get_scylla_session
-
+from app.db.models import BaseUserResponse, BaseUserInDB, BuyerResponse, SellerResponse
+from app.db.crud import get_buyer_profile, get_seller_profile, get_user_type
+from app.core.security import get_current_user
+from app.db.database import get_db_session
 
 router = APIRouter()
 
-@router.get("/user/profile", response_model=UserProfileResponse)
+@router.get("/user/profile", response_model=BaseUserResponse)
 async def read_user_profile(
-    current_user: Annotated[UserInDB, Depends(get_current_user)]
+    current_user: Annotated[BaseUserInDB, Depends(get_current_user)]
 ):
-    # get_current_user already fetches the complete UserInDB object
-    return UserProfileResponse(
-        username=current_user.username,
+    """Get basic user profile information."""
+    return BaseUserResponse(
+        user_id=current_user.user_id,
         email=current_user.email,
-        full_name=current_user.full_name,
-        avatar=current_user.avatar,
-        metadata=current_user.metadata,
-        date_created=current_user.date_created,
-        chatted_bot_names=current_user.chatted_bot_names
+        mobile_number=current_user.mobile_number,
+        created_at=current_user.created_at
     )
 
-@router.put("/user/profile", response_model=UserProfileResponse)
-async def update_user_profile_endpoint(
-    profile_update: UserProfileUpdate,
-    current_user: Annotated[UserInDB, Depends(get_current_user)],
-    session: Annotated[Session, Depends(get_scylla_session)]
+@router.get("/user/type")
+async def get_user_type_endpoint(
+    current_user: Annotated[BaseUserInDB, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db_session)]
 ):
-    updated_user = update_user_in_db(session, current_user.username, profile_update)
-    if not updated_user: # Should not happen if current_user exists
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found during update")
+    """Get user type (buyer, seller, both, or none)."""
+    user_type = await get_user_type(db, current_user.user_id)
+    return {"user_type": user_type}
 
-    return UserProfileResponse(
-        username=updated_user.username,
-        email=updated_user.email,
-        full_name=updated_user.full_name,
-        avatar=updated_user.avatar,
-        metadata=updated_user.metadata,
-        date_created=updated_user.date_created,
-        chatted_bot_names=updated_user.chatted_bot_names
-    )
+@router.get("/buyer/profile", response_model=BuyerResponse)
+async def read_buyer_profile(
+    current_user: Annotated[BaseUserInDB, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db_session)]
+):
+    """Get buyer profile information."""
+    buyer = await get_buyer_profile(db, current_user.user_id)
+    if not buyer:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Buyer profile not found"
+        )
+    return buyer
+
+@router.get("/seller/profile", response_model=SellerResponse)
+async def read_seller_profile(
+    current_user: Annotated[BaseUserInDB, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db_session)]
+):
+    """Get seller profile information."""
+    seller = await get_seller_profile(db, current_user.user_id)
+    if not seller:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Seller profile not found"
+        )
+    return seller

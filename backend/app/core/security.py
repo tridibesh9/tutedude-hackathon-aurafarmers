@@ -5,13 +5,13 @@ from typing import Optional, Annotated
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from cassandra.cluster import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.password import verify_password  # Import from password module
-from app.db.models import TokenData, UserInDB
-from app.db.scylla import get_scylla_session
-from app.db.crud import get_user_from_db
+from app.core.password import verify_password
+from app.db.models import TokenData, BaseUserInDB
+from app.db.database import get_db_session
+from app.db.crud import get_user_by_email
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/login")
 
@@ -27,8 +27,8 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
 async def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
-    session: Annotated[Session, Depends(get_scylla_session)]
-) -> UserInDB:
+    db: Annotated[AsyncSession, Depends(get_db_session)]
+) -> BaseUserInDB:
     """
     Dependency to get the current authenticated user from JWT token.
     """
@@ -40,14 +40,22 @@ async def get_current_user(
     
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        username: Optional[str] = payload.get("sub")
-        if username is None:
+        email: Optional[str] = payload.get("sub")
+        if email is None:
             raise credentials_exception
-        token_data = TokenData(username=username)
+        token_data = TokenData(email=email)
     except JWTError:
         raise credentials_exception
 
-    user = get_user_from_db(session, username=token_data.username)
+    user = await get_user_by_email(db, email=token_data.email)
     if user is None:
         raise credentials_exception
-    return user
+    
+    # Convert SQLAlchemy model to Pydantic model
+    return BaseUserInDB(
+        user_id=user.user_id,
+        email=user.email,
+        mobile_number=user.mobile_number,
+        password_hash=user.password_hash,
+        created_at=user.created_at
+    )
