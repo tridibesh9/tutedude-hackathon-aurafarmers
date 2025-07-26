@@ -36,8 +36,7 @@ class Buyer(Base):
     # Relationships
     base_user = relationship("BaseUser", back_populates="buyer_profile")
     orders = relationship("Order", back_populates="buyer")
-    product_ratings = relationship("ProductRating", back_populates="buyer")
-    seller_ratings = relationship("SellerRating", back_populates="buyer")
+    ratings = relationship("Rating", back_populates="buyer")
 
 class Seller(Base):
     __tablename__ = "sellers"
@@ -51,7 +50,7 @@ class Seller(Base):
     base_user = relationship("BaseUser", back_populates="seller_profile")
     products = relationship("Product", back_populates="seller")
     orders = relationship("Order", back_populates="seller")
-    seller_ratings = relationship("SellerRating", back_populates="seller")
+    ratings = relationship("Rating", back_populates="seller")
 
 class Product(Base):
     __tablename__ = "products"
@@ -68,7 +67,7 @@ class Product(Base):
     # Relationships
     seller = relationship("Seller", back_populates="products")
     order_items = relationship("OrderItem", back_populates="product")
-    product_ratings = relationship("ProductRating", back_populates="product")
+    ratings = relationship("Rating", back_populates="product")
     inventories = relationship("Inventory", back_populates="product")
 
 class Order(Base):
@@ -100,33 +99,22 @@ class OrderItem(Base):
     order = relationship("Order", back_populates="order_items")
     product = relationship("Product", back_populates="order_items")
 
-class ProductRating(Base):
-    __tablename__ = "product_ratings"
+class Rating(Base):
+    __tablename__ = "ratings"
     
     rating_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     product_id = Column(UUID(as_uuid=True), ForeignKey("products.product_id"), nullable=False)
     buyer_id = Column(UUID(as_uuid=True), ForeignKey("buyers.user_id"), nullable=False)
-    rating = Column(Integer, nullable=False)  # 1-5 scale
-    review_text = Column(Text, nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    
-    # Relationships
-    product = relationship("Product", back_populates="product_ratings")
-    buyer = relationship("Buyer", back_populates="product_ratings")
-    
-class SellerRating(Base):
-    __tablename__ = "seller_ratings"
-    
-    rating_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     seller_id = Column(UUID(as_uuid=True), ForeignKey("sellers.user_id"), nullable=False)
-    buyer_id = Column(UUID(as_uuid=True), ForeignKey("buyers.user_id"), nullable=False)
-    rating = Column(Integer, nullable=False)   # 1-5 
+    product_rating = Column(Integer, nullable=False)  # 1-5 scale
+    seller_rating = Column(Integer, nullable=False)   # 1-5 scale
     review_text = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships
-    seller = relationship("Seller", back_populates="seller_ratings")
-    buyer = relationship("Buyer", back_populates="seller_ratings")
+    product = relationship("Product", back_populates="ratings")
+    buyer = relationship("Buyer", back_populates="ratings")
+    seller = relationship("Seller", back_populates="ratings")
 
 class Inventory(Base):
     __tablename__ = "inventories"
@@ -216,12 +204,11 @@ class ProductResponse(BaseModel):
     price: Decimal
     rating: float
     created_at: datetime
-    updated_at: Optional[datetime]
     
     class Config:
         from_attributes = True
 
-# Add Inventory Models
+# Inventory Models
 class InventoryCreate(BaseModel):
     product_id: uuid.UUID
     quantity: int = Field(..., ge=0)
@@ -246,40 +233,7 @@ class InventoryResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# Fix Rating Models to match your separate tables
-class ProductRatingCreate(BaseModel):
-    product_id: uuid.UUID
-    rating: int = Field(..., ge=1, le=5)
-    review_text: Optional[str] = None
-
-class ProductRatingResponse(BaseModel):
-    rating_id: uuid.UUID
-    product_id: uuid.UUID
-    buyer_id: uuid.UUID
-    rating: int
-    review_text: Optional[str]
-    created_at: datetime
-    
-    class Config:
-        from_attributes = True
-
-class SellerRatingCreate(BaseModel):
-    seller_id: uuid.UUID
-    rating: int = Field(..., ge=1, le=5)
-    review_text: Optional[str] = None
-
-class SellerRatingResponse(BaseModel):
-    rating_id: uuid.UUID
-    seller_id: uuid.UUID
-    buyer_id: uuid.UUID
-    rating: int
-    review_text: Optional[str]
-    created_at: datetime
-    
-    class Config:
-        from_attributes = True
-
-# Update Order Models
+# Order Models
 class OrderCreate(BaseModel):
     seller_id: uuid.UUID
     estimated_delivery_date: Optional[date] = None
@@ -287,7 +241,6 @@ class OrderCreate(BaseModel):
 class OrderItemCreate(BaseModel):
     product_id: uuid.UUID
     quantity: int = Field(..., gt=0)
-    price_per_unit: Decimal = Field(..., gt=0)
 
 class OrderItemResponse(BaseModel):
     order_item_id: uuid.UUID
@@ -307,40 +260,33 @@ class OrderResponse(BaseModel):
     order_status: str
     estimated_delivery_date: Optional[date]
     order_date: datetime
+    order_items: List[OrderItemResponse] = []
     
     class Config:
         from_attributes = True
 
-class OrderWithItemsResponse(BaseModel):
-    order_id: uuid.UUID
-    buyer_id: uuid.UUID
-    seller_id: uuid.UUID
-    total_price: Decimal
-    order_status: str
-    estimated_delivery_date: Optional[date]
-    order_date: datetime
-    order_items: List[OrderItemResponse]
-    
-    class Config:
-        from_attributes = True
-
-# Combined response models for better API responses
-class ProductWithInventoryResponse(BaseModel):
+# Rating Models
+class RatingCreate(BaseModel):
     product_id: uuid.UUID
     seller_id: uuid.UUID
-    name: str
-    category: str
-    price: Decimal
-    rating: float
+    product_rating: int = Field(..., ge=1, le=5)
+    seller_rating: int = Field(..., ge=1, le=5)
+    review_text: Optional[str] = None
+
+class RatingResponse(BaseModel):
+    rating_id: uuid.UUID
+    product_id: uuid.UUID
+    buyer_id: uuid.UUID
+    seller_id: uuid.UUID
+    product_rating: int
+    seller_rating: int
+    review_text: Optional[str]
     created_at: datetime
-    inventory: Optional[InventoryResponse] = None
     
     class Config:
         from_attributes = True
 
-# Keep existing authentication models as they are correct
-# UserLogin, Token, TokenData, UserRegister, BaseUserCreate, etc.
-
+# Authentication Models
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
@@ -353,7 +299,7 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     email: Optional[str] = None
 
-
+# Combined User Registration
 class UserRegister(BaseModel):
     email: EmailStr
     mobile_number: str = Field(..., min_length=10, max_length=20)
@@ -365,7 +311,59 @@ class UserRegister(BaseModel):
     # Seller fields (optional)
     seller_address: Optional[str] = None
     seller_pincode: Optional[str] = None
-class BaseUserCreate(BaseModel):
-    email: EmailStr
-    mobile_number: str = Field(..., min_length=10, max_length=20)
-    password: str = Field(..., min_length=6)
+
+# Complete User Profile Response
+class UserProfileResponse(BaseModel):
+    base_user: BaseUserResponse
+    buyer_profile: Optional[BuyerResponse] = None
+    seller_profile: Optional[SellerResponse] = None
+    inventories: List[InventoryResponse] = []
+    
+    class Config:
+        from_attributes = True
+
+# Product with Seller Information
+class ProductWithSellerResponse(BaseModel):
+    product_id: uuid.UUID
+    seller_id: uuid.UUID
+    name: str
+    category: str
+    price: Decimal
+    rating: float
+    created_at: datetime
+    seller: SellerResponse
+    
+    class Config:
+        from_attributes = True
+
+# Product with Inventory Information
+class ProductWithInventoryResponse(BaseModel):
+    product_id: uuid.UUID
+    seller_id: uuid.UUID
+    name: str
+    category: str
+    price: Decimal
+    rating: float
+    created_at: datetime
+    inventories: List[InventoryResponse] = []
+    
+    class Config:
+        from_attributes = True
+
+# Order with Items and Details
+class OrderDetailResponse(BaseModel):
+    order_id: uuid.UUID
+    buyer_id: uuid.UUID
+    seller_id: uuid.UUID
+    total_price: Decimal
+    order_status: str
+    estimated_delivery_date: Optional[date]
+    order_date: datetime
+    order_items: List[OrderItemResponse] = []
+    seller: SellerResponse
+    
+    class Config:
+        from_attributes = True
+
+
+

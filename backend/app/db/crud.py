@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete
 
 from app.db.models import (
-    BaseUser, Buyer, Seller, Product, Order, OrderItem, Rating,
+    BaseUser, Buyer, Seller, Product, Order, OrderItem, ProductRating, SellerRating, Inventory,
     UserRegister, BaseUserCreate, BuyerCreate, SellerCreate
 )
 from app.core.password import get_password_hash
@@ -29,7 +29,8 @@ async def get_user_by_id(db: AsyncSession, user_id: uuid.UUID) -> Optional[BaseU
     return result.scalar_one_or_none()
 
 async def create_user_account(db: AsyncSession, user_data: UserRegister) -> BaseUser:
-    """Create a new user account with buyer/seller profiles."""
+    """Create a new user account with buyer/seller profiles based on user_type."""
+    
     # Create base user
     hashed_password = get_password_hash(user_data.password)
     base_user = BaseUser(
@@ -37,8 +38,9 @@ async def create_user_account(db: AsyncSession, user_data: UserRegister) -> Base
         mobile_number=user_data.mobile_number,
         password_hash=hashed_password
     )
+    
     db.add(base_user)
-    await db.flush()  # Get the user_id without committing
+    await db.flush()  # Flush to get the user_id
     
     # Create buyer profile if needed
     if user_data.user_type in ["buyer", "both"]:
@@ -67,88 +69,97 @@ async def get_user_type(db: AsyncSession, user_id: uuid.UUID) -> str:
     buyer_result = await db.execute(select(Buyer).where(Buyer.user_id == user_id))
     seller_result = await db.execute(select(Seller).where(Seller.user_id == user_id))
     
-    has_buyer = buyer_result.scalar_one_or_none() is not None
-    has_seller = seller_result.scalar_one_or_none() is not None
+    is_buyer = buyer_result.scalar_one_or_none() is not None
+    is_seller = seller_result.scalar_one_or_none() is not None
     
-    if has_buyer and has_seller:
+    if is_buyer and is_seller:
         return "both"
-    elif has_buyer:
+    elif is_buyer:
         return "buyer"
-    elif has_seller:
+    elif is_seller:
         return "seller"
     else:
         return "none"
 
-# --- Buyer CRUD ---
-
 async def get_buyer_profile(db: AsyncSession, user_id: uuid.UUID) -> Optional[Buyer]:
-    """Get buyer profile."""
+    """Get buyer profile by user ID."""
     result = await db.execute(select(Buyer).where(Buyer.user_id == user_id))
     return result.scalar_one_or_none()
-
-async def update_buyer_profile(db: AsyncSession, user_id: uuid.UUID, buyer_data: BuyerCreate) -> Optional[Buyer]:
-    """Update buyer profile."""
-    result = await db.execute(select(Buyer).where(Buyer.user_id == user_id))
-    buyer = result.scalar_one_or_none()
-    
-    if not buyer:
-        return None
-    
-    buyer.shipping_address = buyer_data.shipping_address
-    buyer.shipping_pincode = buyer_data.shipping_pincode
-    
-    await db.commit()
-    await db.refresh(buyer)
-    return buyer
-
-# --- Seller CRUD ---
 
 async def get_seller_profile(db: AsyncSession, user_id: uuid.UUID) -> Optional[Seller]:
-    """Get seller profile."""
+    """Get seller profile by user ID."""
     result = await db.execute(select(Seller).where(Seller.user_id == user_id))
     return result.scalar_one_or_none()
 
-async def update_seller_profile(db: AsyncSession, user_id: uuid.UUID, seller_data: SellerCreate) -> Optional[Seller]:
-    """Update seller profile."""
-    result = await db.execute(select(Seller).where(Seller.user_id == user_id))
-    seller = result.scalar_one_or_none()
-    
-    if not seller:
-        return None
-    
-    seller.seller_address = seller_data.seller_address
-    seller.seller_pincode = seller_data.seller_pincode
-    
-    await db.commit()
-    await db.refresh(seller)
-    return seller
-
 # --- Product CRUD ---
+
+async def create_product(db: AsyncSession, product_data: dict, seller_id: uuid.UUID) -> Product:
+    """Create a new product."""
+    product = Product(
+        seller_id=seller_id,
+        **product_data
+    )
+    db.add(product)
+    await db.commit()
+    await db.refresh(product)
+    return product
 
 async def get_products_by_seller(db: AsyncSession, seller_id: uuid.UUID) -> List[Product]:
     """Get all products by a seller."""
     result = await db.execute(select(Product).where(Product.seller_id == seller_id))
     return result.scalars().all()
 
-async def get_products_by_category(db: AsyncSession, category: str, limit: int = 50) -> List[Product]:
-    """Get products by category."""
-    result = await db.execute(
-        select(Product)
-        .where(Product.category == category)
-        .limit(limit)
+# --- Order CRUD ---
+
+async def create_order(db: AsyncSession, order_data: dict, buyer_id: uuid.UUID) -> Order:
+    """Create a new order."""
+    order = Order(
+        buyer_id=buyer_id,
+        **order_data
     )
-    return result.scalars().all()
+    db.add(order)
+    await db.commit()
+    await db.refresh(order)
+    return order
 
-async def get_product_by_id(db: AsyncSession, product_id: uuid.UUID) -> Optional[Product]:
-    """Get product by ID."""
-    result = await db.execute(select(Product).where(Product.product_id == product_id))
+# --- Rating CRUD ---
+
+async def create_product_rating(db: AsyncSession, rating_data: dict, buyer_id: uuid.UUID) -> ProductRating:
+    """Create a product rating."""
+    rating = ProductRating(
+        buyer_id=buyer_id,
+        **rating_data
+    )
+    db.add(rating)
+    await db.commit()
+    await db.refresh(rating)
+    return rating
+
+async def create_seller_rating(db: AsyncSession, rating_data: dict, buyer_id: uuid.UUID) -> SellerRating:
+    """Create a seller rating."""
+    rating = SellerRating(
+        buyer_id=buyer_id,
+        **rating_data
+    )
+    db.add(rating)
+    await db.commit()
+    await db.refresh(rating)
+    return rating
+
+# --- Inventory CRUD ---
+
+async def create_inventory(db: AsyncSession, inventory_data: dict, user_id: uuid.UUID) -> Inventory:
+    """Create inventory for a product."""
+    inventory = Inventory(
+        user_id=user_id,
+        **inventory_data
+    )
+    db.add(inventory)
+    await db.commit()
+    await db.refresh(inventory)
+    return inventory
+
+async def get_inventory_by_product(db: AsyncSession, product_id: uuid.UUID) -> Optional[Inventory]:
+    """Get inventory for a specific product."""
+    result = await db.execute(select(Inventory).where(Inventory.product_id == product_id))
     return result.scalar_one_or_none()
-
-# Legacy function names for backward compatibility
-async def get_user_from_db(db: AsyncSession, username: str) -> Optional[BaseUser]:
-    """Legacy function name - get user by email (changed from username)."""
-    return await get_user_by_email(db, username)
-
-async def create_user_in_db(db: AsyncSession, user: UserRegister) -> BaseUser:
-    """Legacy function name - create user."""
-    return await create_user_account(db, user)
