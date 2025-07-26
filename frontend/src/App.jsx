@@ -29,7 +29,12 @@ const ProtectedRoutes = ({ userRole }) => {
   // }
 
   return (
-    <div className="app-">
+    <div className="app-layout">
+      <div className="merge-test">
+        <div className="merger"></div>
+        <div className="merger"></div>
+        <div className="merger"></div>
+      </div>
       <main className="app-content">
         {/* The Outlet component renders the matched child route component */}
         <Outlet />
