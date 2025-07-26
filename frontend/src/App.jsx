@@ -1,20 +1,26 @@
-import { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { useState, useEffect } from "react";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+} from "react-router-dom";
 
 // Import your page components
-import Login from './pages/AuthPages/Login.jsx';
-import Register from './pages/AuthPages/Register.jsx';
-import Dashboard from './pages/Dashboard/Dashboard.jsx';
-import ProductListing from './pages/ProductListing/ProductListing.jsx';
-import Cart from './pages/Cart/Cart.jsx';
-import OrderTracking from './pages/OrderTracking/OrderTracking.jsx';
-import Profile from './pages/Profile/Profile.jsx';
-import SurplusExchange from './pages/SurplusExchange/SurplusExchange.jsx';
-import DigitalKhata from './pages/DigitalKhata/DigitalKhata.jsx';
-import Navigation from './pages/Navigation/Navigation.jsx';
+import Login from "./pages/AuthPages/Login.jsx";
+import Register from "./pages/AuthPages/Register.jsx";
+import Dashboard from "./pages/Dashboard/Dashboard.jsx";
+import ProductListing from "./pages/ProductListing/ProductListing.jsx";
+import Cart from "./pages/Cart/Cart.jsx";
+import OrderTracking from "./pages/OrderTracking/OrderTracking.jsx";
+import Profile from "./pages/Profile/Profile.jsx";
+import SurplusExchange from "./pages/SurplusExchange/SurplusExchange.jsx";
+import DigitalKhata from "./pages/DigitalKhata/DigitalKhata.jsx";
+import Navigation from "./pages/Navigation/Navigation.jsx";
 
 // Import your main CSS file
-import './App.css';
+import "./App.css";
 const ProtectedRoutes = ({ userRole }) => {
   // const isAuthenticated = !!localStorage.getItem('token');
 
@@ -36,34 +42,66 @@ const ProtectedRoutes = ({ userRole }) => {
 // --- Main App Component ---
 function App() {
   // You can manage user role here after login
-  const [userRole, setUserRole] = useState('buyer'); 
+  const [userRole, setUserRole] = useState("buyer");
 
+  const login = async () => {
+    try {
+      const response = await api.post("/login", {
+        email: "hello@gmail.com",
+        password: "heoery",
+      });
+      if (response.status === 200) {
+        console.log("Login succeeded");
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  useEffect(() => {
+    login();
+  }, []);
   // A function to handle logout
   const handleLogout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem("token");
     // Force a re-render/redirect by navigating
-    window.location.href = '/login';
+    window.location.href = "/login";
   };
 
   return (
     <BrowserRouter>
       <Routes>
         {/* Public Routes */}
-        <Route path="/login" element={<Login/>} />
+        <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        
+
         {/* Redirect root to login */}
         <Route path="/" element={<Navigate to="/login" replace />} />
 
         {/* Protected Routes */}
         <Route element={<ProtectedRoutes userRole={userRole} />}>
-          <Route path="/dashboard" element={<Dashboard userRole={userRole} />} />
-          <Route path="/products" element={<ProductListing userRole={userRole} />} />
+          <Route
+            path="/dashboard"
+            element={<Dashboard userRole={userRole} />}
+          />
+          <Route
+            path="/products"
+            element={<ProductListing userRole={userRole} />}
+          />
           <Route path="/cart" element={<Cart userRole={userRole} />} />
-          <Route path="/tracking" element={<OrderTracking userRole={userRole} />} />
-          <Route path="/surplus" element={<SurplusExchange userRole={userRole} />} />
+          <Route
+            path="/tracking"
+            element={<OrderTracking userRole={userRole} />}
+          />
+          <Route
+            path="/surplus"
+            element={<SurplusExchange userRole={userRole} />}
+          />
           <Route path="/khata" element={<DigitalKhata userRole={userRole} />} />
-          <Route path="/profile" element={<Profile userRole={userRole} onLogout={handleLogout} />} />
+          <Route
+            path="/profile"
+            element={<Profile userRole={userRole} onLogout={handleLogout} />}
+          />
         </Route>
       </Routes>
     </BrowserRouter>
