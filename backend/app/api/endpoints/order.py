@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete
+from sqlalchemy import select, update, delete, and_
 from typing import List, Optional
 import uuid
 from decimal import Decimal
+from datetime import date
 
 from app.db.database import get_db_session
 from app.db.models import (
-    Order, OrderItem, BaseUser, Buyer, Seller, Product,
+    Order, OrderItem, BaseUser, Buyer, Seller, Product, Inventory,
     OrderCreate, OrderItemCreate, OrderResponse, OrderWithItemsResponse,
     OrderItemResponse
 )
@@ -24,7 +25,7 @@ async def create_order(
 ):
     """
     Create a new order with order items.
-    Only buyers can create orders.
+    Now checks inventory availability and applies FIFO (First In, First Out) logic.
     """
     # Check if user is a buyer
     buyer_result = await db.execute(select(Buyer).where(Buyer.user_id == current_user.user_id))
@@ -46,10 +47,11 @@ async def create_order(
             detail="Seller not found"
         )
     
-    # Calculate total price and validate products
     total_price = Decimal('0.00')
     validated_items = []
+    inventory_updates = []  # Track inventory changes
     
+    # Validate each item and check inventory availability
     for item in order_items:
         # Check if product exists and belongs to the seller
         product_result = await db.execute(
@@ -66,38 +68,93 @@ async def create_order(
                 detail=f"Product {item.product_id} not found or doesn't belong to seller"
             )
         
-        item_total = product.price * item.quantity
+        # Get available inventory batches (FIFO - oldest first, non-expired)
+        today = date.today()
+        inventory_result = await db.execute(
+            select(Inventory).where(
+                and_(
+                    Inventory.product_id == item.product_id,
+                    Inventory.quantity > 0,
+                    (Inventory.expiry_date.is_(None)) | (Inventory.expiry_date >= today)
+                )
+            ).order_by(Inventory.created_at.asc())  # FIFO
+        )
+        available_batches = inventory_result.scalars().all()
+        
+        # Check if enough quantity is available
+        total_available = sum(batch.quantity for batch in available_batches)
+        
+        if total_available < item.quantity:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Insufficient inventory for {product.name}. "
+                       f"Requested: {item.quantity}, Available: {total_available}"
+            )
+        
+        # Calculate price with best available discount (FIFO with best discount)
+        remaining_quantity = item.quantity
+        weighted_price = Decimal('0.00')
+        
+        for batch in available_batches:
+            if remaining_quantity <= 0:
+                break
+                
+            # Take from this batch
+            take_quantity = min(remaining_quantity, batch.quantity)
+            
+            # Calculate price with discount
+            batch_price = product.price * (1 - Decimal(str(batch.discount)) / 100)
+            weighted_price += batch_price * take_quantity
+            
+            # Track inventory update
+            inventory_updates.append({
+                'batch': batch,
+                'reduce_by': take_quantity
+            })
+            
+            remaining_quantity -= take_quantity
+        
+        # Average price per unit for this item
+        price_per_unit = weighted_price / item.quantity
+        item_total = weighted_price
         total_price += item_total
         
         validated_items.append({
             "product_id": item.product_id,
             "quantity": item.quantity,
-            "price_per_unit": product.price
+            "price_per_unit": price_per_unit
         })
     
     # Create the order
-    new_order = Order(
+    order = Order(
         buyer_id=current_user.user_id,
         seller_id=order_data.seller_id,
         total_price=total_price,
+        order_status="Pending",
         estimated_delivery_date=order_data.estimated_delivery_date
     )
     
-    db.add(new_order)
-    await db.flush()  # Flush to get the order_id
+    db.add(order)
+    await db.flush()  # Get order_id
     
     # Create order items
     for item_data in validated_items:
         order_item = OrderItem(
-            order_id=new_order.order_id,
+            order_id=order.order_id,
             **item_data
         )
         db.add(order_item)
     
-    await db.commit()
-    await db.refresh(new_order)
+    # Update inventory quantities (reduce stock)
+    for update in inventory_updates:
+        batch = update['batch']
+        reduce_by = update['reduce_by']
+        batch.quantity -= reduce_by
     
-    return new_order
+    await db.commit()
+    await db.refresh(order)
+    
+    return order
 
 @router.put("/update/{order_id}", response_model=OrderResponse)
 async def update_order(
