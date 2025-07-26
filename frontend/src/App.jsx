@@ -6,7 +6,7 @@ import {
   Navigate,
   Outlet,
 } from "react-router-dom";
-
+import api from "./api.js";
 // Import your page components
 import Login from "./pages/AuthPages/Login.jsx";
 import Register from "./pages/AuthPages/Register.jsx";
@@ -17,7 +17,7 @@ import OrderTracking from "./pages/OrderTracking/OrderTracking.jsx";
 import Profile from "./pages/Profile/Profile.jsx";
 import SurplusExchange from "./pages/SurplusExchange/SurplusExchange.jsx";
 import DigitalKhata from "./pages/DigitalKhata/DigitalKhata.jsx";
-import Navigation from "./pages/Navigation/Navigation.jsx";
+import { Navigation } from "./pages/Navigation/Navigation.jsx";
 
 // Import your main CSS file
 import "./App.css";
