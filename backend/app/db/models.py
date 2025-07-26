@@ -38,6 +38,7 @@ class Buyer(Base):
     orders = relationship("Order", back_populates="buyer")
     product_ratings = relationship("ProductRating", back_populates="buyer")
     seller_ratings = relationship("SellerRating", back_populates="buyer")
+    bargain_rooms = relationship("BargainRoom", foreign_keys="BargainRoom.buyer_id")
 
 class Seller(Base):
     __tablename__ = "sellers"
@@ -52,6 +53,7 @@ class Seller(Base):
     products = relationship("Product", back_populates="seller")
     orders = relationship("Order", back_populates="seller")
     seller_ratings = relationship("SellerRating", back_populates="seller")
+    bargain_rooms = relationship("BargainRoom", foreign_keys="BargainRoom.seller_id")
 
 class Product(Base):
     __tablename__ = "products"
@@ -70,6 +72,7 @@ class Product(Base):
     order_items = relationship("OrderItem", back_populates="product")
     product_ratings = relationship("ProductRating", back_populates="product")
     inventories = relationship("Inventory", back_populates="product")
+    bargain_rooms = relationship("BargainRoom", back_populates="product")
 
 class Order(Base):
     __tablename__ = "orders"
@@ -142,6 +145,62 @@ class Inventory(Base):
     # Relationships
     product = relationship("Product", back_populates="inventories")
     user = relationship("BaseUser", back_populates="inventories")
+
+class BargainRoom(Base):
+    __tablename__ = "bargain_rooms"
+    
+    room_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    product_id = Column(UUID(as_uuid=True), ForeignKey("products.product_id"), nullable=False)
+    buyer_id = Column(UUID(as_uuid=True), ForeignKey("buyers.user_id"), nullable=False)
+    seller_id = Column(UUID(as_uuid=True), ForeignKey("sellers.user_id"), nullable=True)  # Null for public bids
+    room_type = Column(String(20), nullable=False)  # "public" or "private"
+    status = Column(String(20), default="active")  # active, closed, accepted, rejected
+    initial_quantity = Column(Integer, nullable=False)
+    initial_bid_price = Column(Numeric(10, 2), nullable=False)
+    current_bid_price = Column(Numeric(10, 2), nullable=False)
+    location_pincode = Column(String(10), nullable=False)  # For location-based matching
+    expires_at = Column(DateTime(timezone=True), nullable=True)  # Auto-expire public bids
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    product = relationship("Product")
+    buyer = relationship("Buyer", foreign_keys=[buyer_id])
+    seller = relationship("Seller", foreign_keys=[seller_id])
+    bids = relationship("BargainBid", back_populates="room")
+    messages = relationship("BargainMessage", back_populates="room")
+
+class BargainBid(Base):
+    __tablename__ = "bargain_bids"
+    
+    bid_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    room_id = Column(UUID(as_uuid=True), ForeignKey("bargain_rooms.room_id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("base_users.user_id"), nullable=False)
+    user_type = Column(String(10), nullable=False)  # "buyer" or "seller"
+    bid_price = Column(Numeric(10, 2), nullable=False)
+    quantity = Column(Integer, nullable=False)
+    message = Column(Text, nullable=True)  # Optional message with bid
+    is_counter_offer = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Relationships
+    room = relationship("BargainRoom", back_populates="bids")
+    user = relationship("BaseUser")
+
+class BargainMessage(Base):
+    __tablename__ = "bargain_messages"
+    
+    message_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    room_id = Column(UUID(as_uuid=True), ForeignKey("bargain_rooms.room_id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("base_users.user_id"), nullable=False)
+    message_type = Column(String(20), default="text")  # text, offer, acceptance, rejection
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Relationships
+    room = relationship("BargainRoom", back_populates="messages")
+    user = relationship("BaseUser")
+
 # Pydantic Models (API Request/Response)
 
 # Base User Models
@@ -369,3 +428,105 @@ class BaseUserCreate(BaseModel):
     email: EmailStr
     mobile_number: str = Field(..., min_length=10, max_length=20)
     password: str = Field(..., min_length=6)
+
+# Bargaining Pydantic Models
+class BargainRoomCreate(BaseModel):
+    product_id: uuid.UUID
+    seller_id: Optional[uuid.UUID] = None  # None for public bargaining
+    room_type: str = Field(..., pattern="^(public|private)$")
+    quantity: int = Field(..., gt=0)
+    initial_bid_price: Decimal = Field(..., gt=0)
+    location_pincode: str = Field(..., min_length=5, max_length=10)
+    expires_in_hours: Optional[int] = Field(24, ge=1, le=168)  # 1 hour to 1 week
+
+class BargainBidCreate(BaseModel):
+    bid_price: Decimal = Field(..., gt=0)
+    quantity: int = Field(..., gt=0)
+    message: Optional[str] = Field(None, max_length=500)
+    is_counter_offer: bool = False
+
+class BargainMessageCreate(BaseModel):
+    content: str = Field(..., min_length=1, max_length=1000)
+    message_type: str = Field(default="text", pattern="^(text|offer|acceptance|rejection)$")
+
+class BargainRoomResponse(BaseModel):
+    room_id: uuid.UUID
+    product_id: uuid.UUID
+    buyer_id: uuid.UUID
+    seller_id: Optional[uuid.UUID]
+    room_type: str
+    status: str
+    initial_quantity: int
+    initial_bid_price: Decimal
+    current_bid_price: Decimal
+    location_pincode: str
+    expires_at: Optional[datetime]
+    created_at: datetime
+    updated_at: Optional[datetime]
+    
+    class Config:
+        from_attributes = True
+
+class BargainBidResponse(BaseModel):
+    bid_id: uuid.UUID
+    room_id: uuid.UUID
+    user_id: uuid.UUID
+    user_type: str
+    bid_price: Decimal
+    quantity: int
+    message: Optional[str]
+    is_counter_offer: bool
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class BargainMessageResponse(BaseModel):
+    message_id: uuid.UUID
+    room_id: uuid.UUID
+    user_id: uuid.UUID
+    message_type: str
+    content: str
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class BargainRoomWithDetailsResponse(BaseModel):
+    room_id: uuid.UUID
+    product_id: uuid.UUID
+    product_name: str
+    product_category: str
+    product_price: Decimal
+    buyer_id: uuid.UUID
+    seller_id: Optional[uuid.UUID]
+    room_type: str
+    status: str
+    initial_quantity: int
+    initial_bid_price: Decimal
+    current_bid_price: Decimal
+    location_pincode: str
+    expires_at: Optional[datetime]
+    created_at: datetime
+    recent_bids: List[BargainBidResponse]
+    recent_messages: List[BargainMessageResponse]
+    
+    class Config:
+        from_attributes = True
+
+class PublicBargainResponse(BaseModel):
+    room_id: uuid.UUID
+    product_id: uuid.UUID
+    product_name: str
+    product_category: str
+    original_price: Decimal
+    buyer_id: uuid.UUID
+    buyer_location: str
+    quantity: int
+    current_bid_price: Decimal
+    expires_at: Optional[datetime]
+    created_at: datetime
+    total_seller_responses: int
+    
+    class Config:
+        from_attributes = True
