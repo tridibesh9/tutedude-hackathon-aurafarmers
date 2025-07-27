@@ -1,22 +1,56 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { authAPI, apiHelpers } from '../../utils/api.js';
 import './AuthPages.css';
 
 const Register = () => {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [address, setAddress] = useState('');
   const [pincode, setPincode] = useState('');
-  const [userRole, setUserRole] = useState('buyer'); 
+  const [userRole, setUserRole] = useState('buyer');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
-    // In a real app, you would handle the registration logic here.
-    console.log('Registration attempt with:', { phoneNumber, email, password, address, pincode });
-    alert('Registration functionality is for demonstration.');
+    setLoading(true);
+    setError('');
+    setSuccessMessage('');
+
+    // Basic validation
+    if (!phoneNumber || phoneNumber.length !== 10) {
+      setError('Please enter a valid 10-digit mobile number');
+      setLoading(false);
+      return;
+    }
+
+    if (!email || !password) {
+      setError('Email and password are required');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const mobile_number = `+91${phoneNumber}`;
+      const response = await authAPI.register(email, password, mobile_number, userRole);
+      
+      setSuccessMessage('Registration successful! You can now login.');
+      
+      // Auto-redirect to login after 2 seconds
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
+      
+    } catch (error) {
+      setError(apiHelpers.handleError(error));
+    } finally {
+      setLoading(false);
+    }
   };
 
     const navigateToLogin = () => {
@@ -35,6 +69,34 @@ const Register = () => {
         </div>
 
         <form onSubmit={handleRegister} className="auth-form">
+          {error && (
+            <div className="error-message" style={{
+              color: '#ef4444',
+              backgroundColor: '#fef2f2',
+              border: '1px solid #fecaca',
+              borderRadius: '4px',
+              padding: '8px 12px',
+              marginBottom: '16px',
+              fontSize: '14px'
+            }}>
+              {error}
+            </div>
+          )}
+
+          {successMessage && (
+            <div className="success-message" style={{
+              color: '#059669',
+              backgroundColor: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: '4px',
+              padding: '8px 12px',
+              marginBottom: '16px',
+              fontSize: '14px'
+            }}>
+              {successMessage}
+            </div>
+          )}
+
           <div className="input-group">
             <label htmlFor="register-phone">Enter Mobile Number</label>
             <div className="input-prefix-container">
@@ -79,7 +141,7 @@ const Register = () => {
           </div>
 
           <div className="input-group">
-            <label htmlFor="register-address">Address</label>
+            <label htmlFor="register-address">Address (Optional)</label>
             <input
               id="register-address"
               type="text"
@@ -87,12 +149,11 @@ const Register = () => {
               onChange={(e) => setAddress(e.target.value)}
               className="input-field"
               placeholder="123 Main St, Anytown"
-              required
             />
           </div>
           
           <div className="input-group">
-            <label htmlFor="register-pincode">Pincode</label>
+            <label htmlFor="register-pincode">Pincode (Optional)</label>
             <input
               id="register-pincode"
               type="text"
@@ -101,7 +162,6 @@ const Register = () => {
               className="input-field"
               placeholder="123456"
               maxLength="6"
-              required
             />
           </div>
 
@@ -112,14 +172,16 @@ const Register = () => {
                 value={userRole}
                 onChange={(e) => setUserRole(e.target.value)}
                 className="input-field"
+                required
               >
                 <option value="buyer">Buyer</option>
                 <option value="seller">Seller</option>
+                <option value="both">Both (Buyer & Seller)</option>
               </select>
             </div>    
 
-          <button type="submit" className="auth-button">
-            Register
+          <button type="submit" className="auth-button" disabled={loading}>
+            {loading ? 'Registering...' : 'Register'}
           </button>
         </form>
 
