@@ -8,7 +8,7 @@ from decimal import Decimal
 from app.db.database import get_db_session
 from app.db.models import (
     Inventory, Product, BaseUser, Seller,
-    InventoryCreate, InventoryUpdate, InventoryResponse
+    InventoryCreate, InventoryUpdate, InventoryResponse, DiscountStructure
 )
 from app.core.security import get_current_user
 
@@ -121,7 +121,7 @@ async def add_inventory_batch(
         product_id=inventory_data.product_id,
         user_id=current_user.user_id,
         quantity=inventory_data.quantity,
-        discount=inventory_data.discount,
+        discount=inventory_data.discount.to_array(),  # Convert to array for storage
         expiry_date=inventory_data.expiry_date
     )
     
@@ -129,7 +129,8 @@ async def add_inventory_batch(
     await db.commit()
     await db.refresh(inventory)
     
-    return inventory
+    # Return response with proper discount structure
+    return InventoryResponse.from_orm_with_discount(inventory)
 
 @router.put("/update/{inventory_id}", response_model=InventoryResponse)
 async def update_inventory_batch(
@@ -171,12 +172,17 @@ async def update_inventory_batch(
     # Update fields if provided
     update_data = inventory_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
-        setattr(inventory, field, value)
+        if field == 'discount' and value is not None:
+            # Convert discount structure to array for storage
+            setattr(inventory, field, value.to_array())
+        else:
+            setattr(inventory, field, value)
     
     await db.commit()
     await db.refresh(inventory)
     
-    return inventory
+    # Return response with proper discount structure
+    return InventoryResponse.from_orm_with_discount(inventory)
 
 @router.get("/product/{product_id}", response_model=List[InventoryResponse])
 async def get_product_inventory(
@@ -202,7 +208,8 @@ async def get_product_inventory(
     result = await db.execute(query)
     inventory_batches = result.scalars().all()
     
-    return inventory_batches
+    # Convert to proper response format with discount structures
+    return [InventoryResponse.from_orm_with_discount(batch) for batch in inventory_batches]
 
 @router.get("/my-inventory", response_model=List[InventoryResponse])
 async def get_my_inventory(
@@ -246,7 +253,8 @@ async def get_my_inventory(
     result = await db.execute(query)
     inventory_batches = result.scalars().all()
     
-    return inventory_batches
+    # Convert to proper response format with discount structures
+    return [InventoryResponse.from_orm_with_discount(batch) for batch in inventory_batches]
 
 @router.delete("/delete/{inventory_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_inventory_batch(
@@ -322,9 +330,109 @@ async def get_available_quantity(
             {
                 "inventory_id": str(batch.inventory_id),
                 "quantity": batch.quantity,
-                "discount": batch.discount,
+                "discount": DiscountStructure.from_array(batch.discount).model_dump(),
                 "expiry_date": batch.expiry_date.isoformat() if batch.expiry_date else None
             }
             for batch in inventory_batches
         ]
+    }
+
+@router.get("/pricing/{product_id}")
+async def get_product_pricing(
+    product_id: str,
+    quantity: int = Query(..., gt=0, description="Quantity to purchase"),
+    purchase_type: str = Query("solo_singletime", regex="^(solo_singletime|subscription|group)$"),
+    db: AsyncSession = Depends(get_db_session)
+):
+    """
+    Get pricing information for a product with different discount types.
+    Calculates the best price based on available inventory and purchase type.
+    """
+    today = date.today()
+    
+    # Get product details
+    product_result = await db.execute(select(Product).where(Product.product_id == product_id))
+    product = product_result.scalar_one_or_none()
+    
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found"
+        )
+    
+    # Get available inventory batches (FIFO - oldest first, non-expired)
+    inventory_result = await db.execute(
+        select(Inventory).where(
+            and_(
+                Inventory.product_id == product_id,
+                Inventory.quantity > 0,
+                (Inventory.expiry_date.is_(None)) | (Inventory.expiry_date >= today)
+            )
+        ).order_by(Inventory.created_at.asc())
+    )
+    available_batches = inventory_result.scalars().all()
+    
+    # Check if enough quantity is available
+    total_available = sum(batch.quantity for batch in available_batches)
+    
+    if total_available < quantity:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Insufficient inventory. Requested: {quantity}, Available: {total_available}"
+        )
+    
+    # Calculate pricing for the requested quantity using FIFO
+    remaining_quantity = quantity
+    total_cost = Decimal('0.00')
+    batch_breakdown = []
+    
+    is_group = purchase_type == "group"
+    purchase_type_param = "subscription" if purchase_type == "subscription" else "solo_singletime"
+    
+    for batch in available_batches:
+        if remaining_quantity <= 0:
+            break
+            
+        # Take from this batch
+        take_quantity = min(remaining_quantity, batch.quantity)
+        discount_struct = DiscountStructure.from_array(batch.discount)
+        
+        # Calculate discounted price for this batch
+        discounted_price = discount_struct.calculate_discounted_price(
+            product.price, purchase_type_param, is_group
+        )
+        
+        batch_cost = discounted_price * take_quantity
+        total_cost += batch_cost
+        
+        batch_breakdown.append({
+            "inventory_id": str(batch.inventory_id),
+            "quantity_from_batch": take_quantity,
+            "original_price_per_unit": float(product.price),
+            "discounted_price_per_unit": float(discounted_price),
+            "discount_applied": discount_struct.get_applicable_discount(purchase_type_param, is_group),
+            "batch_total": float(batch_cost),
+            "expiry_date": batch.expiry_date.isoformat() if batch.expiry_date else None
+        })
+        
+        remaining_quantity -= take_quantity
+    
+    # Calculate savings
+    original_total = product.price * quantity
+    savings = original_total - total_cost
+    
+    return {
+        "product_id": product_id,
+        "product_name": product.name,
+        "quantity_requested": quantity,
+        "purchase_type": purchase_type,
+        "pricing": {
+            "original_total": float(original_total),
+            "discounted_total": float(total_cost),
+            "total_savings": float(savings),
+            "savings_percentage": float((savings / original_total) * 100) if original_total > 0 else 0,
+            "average_price_per_unit": float(total_cost / quantity)
+        },
+        "batch_breakdown": batch_breakdown,
+        "available_quantity": total_available
     }

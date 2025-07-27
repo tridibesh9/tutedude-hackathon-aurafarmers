@@ -28,26 +28,35 @@ export const OrderTracking = ({ userRole }) => {
       setLoading(true);
       setError("");
 
-      let orderStatus = null;
       if (activeTab === "live") {
         // Load pending, confirmed, and shipped orders
-        orderStatus = ["Pending", "Confirmed", "Shipped"];
+        const allOrders = [];
+        const statuses = ["Pending", "Confirmed", "Shipped"];
+        
+        for (const status of statuses) {
+          const response = await orderAPI.getAllOrders({
+            order_status: status,
+            limit: 50,
+          });
+          allOrders.push(...(Array.isArray(response) ? response : []));
+        }
+        
+        setOrders(allOrders);
       } else {
         // Load delivered and cancelled orders
-        orderStatus = ["Delivered", "Cancelled"];
+        const allOrders = [];
+        const statuses = ["Delivered", "Cancelled"];
+        
+        for (const status of statuses) {
+          const response = await orderAPI.getAllOrders({
+            order_status: status,
+            limit: 50,
+          });
+          allOrders.push(...(Array.isArray(response) ? response : []));
+        }
+        
+        setOrders(allOrders);
       }
-
-      // Load orders for each status
-      const allOrders = [];
-      for (const status of orderStatus) {
-        const response = await orderAPI.getAllOrders({
-          order_status: status,
-          limit: 50,
-        });
-        allOrders.push(...response);
-      }
-
-      setOrders(allOrders);
     } catch (error) {
       setError(apiHelpers.handleError(error));
     } finally {

@@ -232,16 +232,37 @@ export const inventoryAPI = {
     const response = await api.get(`/inventory/available/${productId}`);
     return response.data;
   },
+
+  // Get Product Pricing
+  async getProductPricing(productId, quantity, purchaseType = "solo_singletime") {
+    const queryParams = new URLSearchParams({
+      quantity: quantity.toString(),
+      purchase_type: purchaseType,
+    });
+
+    const response = await api.get(`/inventory/pricing/${productId}?${queryParams}`);
+    return response.data;
+  },
 };
 
 // Order API functions
 export const orderAPI = {
   // Create Order (Buyer Only)
-  async createOrder(seller_id, estimated_delivery_date, order_items) {
+  async createOrder(orderData, orderItems, purchaseType = "solo_singletime") {
     const response = await api.post("/order/create", {
-      seller_id,
-      estimated_delivery_date,
-      order_items,
+      order_data: orderData,
+      order_items: orderItems,
+      purchase_type: purchaseType,
+    });
+    return response.data;
+  },
+
+  // Calculate Order Pricing (Buyer Only)
+  async calculatePricing(orderItems, sellerId, purchaseType = "solo_singletime") {
+    const response = await api.post("/order/calculate-pricing", {
+      order_items: orderItems,
+      seller_id: sellerId,
+      purchase_type: purchaseType,
     });
     return response.data;
   },
@@ -273,6 +294,54 @@ export const orderAPI = {
     if (order_status) queryParams.append("order_status", order_status);
 
     const response = await api.get(`/order/?${queryParams}`);
+    return response.data;
+  },
+
+  // Group Order Functions
+  async createGroupOrder(orderData, orderItems, purchaseType = "solo_singletime") {
+    const response = await api.post("/order/create", {
+      order_data: { ...orderData, order_type: "group" },
+      order_items: orderItems,
+      purchase_type: purchaseType,
+    });
+    return response.data;
+  },
+
+  // Join Group Order (Buyer Only)
+  async joinGroupOrder(orderId, quantityRequested) {
+    const response = await api.post("/order/group/join", {
+      order_id: orderId,
+      quantity_requested: quantityRequested,
+    });
+    return response.data;
+  },
+
+  // Get Available Group Orders (Buyer Only)
+  async getAvailableGroupOrders(params = {}) {
+    const { seller_id, product_category, max_distance_km, skip = 0, limit = 20 } = params;
+
+    const queryParams = new URLSearchParams({
+      skip: skip.toString(),
+      limit: limit.toString(),
+    });
+
+    if (seller_id) queryParams.append("seller_id", seller_id);
+    if (product_category) queryParams.append("product_category", product_category);
+    if (max_distance_km) queryParams.append("max_distance_km", max_distance_km.toString());
+
+    const response = await api.get(`/order/group/available?${queryParams}`);
+    return response.data;
+  },
+
+  // Get Group Order Details
+  async getGroupOrderDetails(orderId) {
+    const response = await api.get(`/order/group/${orderId}`);
+    return response.data;
+  },
+
+  // Update Group Order Participant Status
+  async updateParticipantStatus(participantId, newStatus) {
+    const response = await api.put(`/order/group/participant/${participantId}/status?new_status=${newStatus}`);
     return response.data;
   },
 };
@@ -395,7 +464,23 @@ export const apiHelpers = {
   // Handle API errors
   handleError(error) {
     if (error.response?.data?.detail) {
-      return error.response.data.detail;
+      // Handle Pydantic validation errors (array of error objects)
+      if (Array.isArray(error.response.data.detail)) {
+        const errorMessages = error.response.data.detail.map(err => {
+          if (typeof err === 'string') return err;
+          if (err.msg) return `${err.loc?.join('.') || 'Field'}: ${err.msg}`;
+          return JSON.stringify(err);
+        });
+        return errorMessages.join('; ');
+      }
+      // Handle simple string errors
+      if (typeof error.response.data.detail === 'string') {
+        return error.response.data.detail;
+      }
+      // Handle object errors
+      if (typeof error.response.data.detail === 'object') {
+        return JSON.stringify(error.response.data.detail);
+      }
     }
     return error.message || "An unexpected error occurred";
   },

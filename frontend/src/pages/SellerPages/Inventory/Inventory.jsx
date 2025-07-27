@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Inventory.css";
 import Header from "../../../components/Header/Header";
-import api from "../../../utils/api";
+import { inventoryAPI, apiHelpers } from "../../../utils/api";
 
 const getExpiryStatus = (expiryDate) => {
   if (!expiryDate) return { text: "No expiry date", class: "" };
@@ -41,21 +41,26 @@ const Inventory = () => {
   const [inventory, setInventory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState("");
 
   const loadInventory = async () => {
     try {
-      const response = await api.get("/inventory/my-inventory");
-      if (response.status === 200) {
-        const data = response.data;
-        // Sort by expiry date (soonest first)
-        const sortedData = data.sort((a, b) => {
-          const dateA = a.expiry ? new Date(a.expiry) : new Date("9999-12-31");
-          const dateB = b.expiry ? new Date(b.expiry) : new Date("9999-12-31");
-          return dateA - dateB;
-        });
-        setInventory(sortedData);
-      }
+      setError("");
+      const data = await inventoryAPI.getMyInventory({
+        show_expired: true,
+        limit: 100
+      });
+      
+      // Sort by expiry date (soonest first)
+      const sortedData = data.sort((a, b) => {
+        const dateA = a.expiry_date ? new Date(a.expiry_date) : new Date("9999-12-31");
+        const dateB = b.expiry_date ? new Date(b.expiry_date) : new Date("9999-12-31");
+        return dateA - dateB;
+      });
+      
+      setInventory(sortedData);
     } catch (error) {
+      setError(apiHelpers.handleError(error));
       console.error("Error fetching inventory:", error);
     } finally {
       setIsLoading(false);
@@ -143,7 +148,9 @@ const Inventory = () => {
                     </p>
                     <p>
                       <strong>Discount:</strong>{" "}
-                      {item.discount ? `${item.discount}%` : "0%"}
+                      {item.discount?.solo_singletime 
+                        ? `${item.discount.solo_singletime}%` 
+                        : "0%"}
                     </p>
                     {item.expiry_date && (
                       <p

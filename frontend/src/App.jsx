@@ -24,6 +24,7 @@ import Navigation from "./pages/Navigation/Navigation.jsx";
 import BargainDashboard from "./components/Bargain/BargainDashboard.jsx";
 import ProductBuy from "./pages/ProductBuy/ProductBuy";
 import ProductBuyWrapper from "./pages/ProductBuy/ProductBuyWrapper";
+import GroupOrders from "./pages/GroupOrders/GroupOrders.jsx";
 
 // Import your main CSS files
 import "./styles/variables.css";
@@ -164,6 +165,10 @@ function App() {
                   element={<OrderTracking userRole={userRole} />}
                 />
                 <Route
+                  path="/group-orders"
+                  element={<GroupOrders userRole={userRole} />}
+                />
+                <Route
                   path="/surplus"
                   element={<SurplusExchange userRole={userRole} />}
                 />
@@ -180,6 +185,10 @@ function App() {
                 <Route
                   path="/product-buy/:productId"
                   element={<ProductBuyWrapper />}
+                />
+                <Route
+                  path="/bargain"
+                  element={<BargainDashboard userRole={userRole} />}
                 />
               </>
             )}
@@ -208,6 +217,10 @@ function App() {
                 <Route
                   path="/profile"
                   element={<SellerProfile onLogout={handleLogout} />}
+                />
+                <Route
+                  path="/bargain"
+                  element={<BargainDashboard userRole={userRole} />}
                 />
               </>
             )}

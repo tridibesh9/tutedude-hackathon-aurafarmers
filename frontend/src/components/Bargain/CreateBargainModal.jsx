@@ -8,7 +8,6 @@ const CreateBargainModal = ({ userRole, onClose, onBargainCreated }) => {
     product_name: '',
     quantity: '',
     starting_price: '',
-    location: '',
     pincode: '',
     expiry_time: '',
     description: '',
@@ -22,42 +21,61 @@ const CreateBargainModal = ({ userRole, onClose, onBargainCreated }) => {
 
   useEffect(() => {
     fetchProducts();
-    if (bargainType === 'private') {
+  }, []);
+
+  useEffect(() => {
+    if (bargainType === 'private' && products.length > 0) {
       fetchSellers();
     }
-  }, [bargainType]);
+  }, [bargainType, products]);
 
   const fetchProducts = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/v1/products', {
+      const response = await fetch('http://localhost:8000/api/v1/product/', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-      const data = await response.json();
+      
       if (response.ok) {
-        setProducts(data.products || []);
+        const data = await response.json();
+        // API returns array of products directly
+        setProducts(Array.isArray(data) ? data : []);
+        console.log('Products fetched:', data);
+      } else {
+        console.error('Failed to fetch products:', response.status, response.statusText);
+        setProducts([]);
       }
     } catch (error) {
       console.error('Error fetching products:', error);
+      setProducts([]);
     }
   };
 
   const fetchSellers = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/v1/users/sellers', {
-        headers: {
-          'Authorization': `Bearer ${token}`
+      // For now, we'll extract unique sellers from the products
+      // since there's no direct sellers endpoint
+      const uniqueSellers = [];
+      const sellerIds = new Set();
+      
+      products.forEach(product => {
+        if (product.seller_id && !sellerIds.has(product.seller_id)) {
+          sellerIds.add(product.seller_id);
+          uniqueSellers.push({
+            seller_id: product.seller_id,
+            name: `Seller ${product.seller_id.slice(0, 8)}...`, // Abbreviated seller ID as name
+            // You could fetch seller details here if needed
+          });
         }
       });
-      const data = await response.json();
-      if (response.ok) {
-        setSellers(data.sellers || []);
-      }
+      
+      setSellers(uniqueSellers);
+      console.log('Sellers extracted from products:', uniqueSellers);
     } catch (error) {
-      console.error('Error fetching sellers:', error);
+      console.error('Error processing sellers:', error);
+      setSellers([]);
     }
   };
 
@@ -77,7 +95,7 @@ const CreateBargainModal = ({ userRole, onClose, onBargainCreated }) => {
   };
 
   const handleProductSelect = (productId) => {
-    const selectedProduct = products.find(p => p.id === productId);
+    const selectedProduct = products.find(p => p.product_id === productId);
     if (selectedProduct) {
       setFormData(prev => ({
         ...prev,
@@ -95,7 +113,6 @@ const CreateBargainModal = ({ userRole, onClose, onBargainCreated }) => {
     if (!formData.product_id) newErrors.product_id = 'Please select a product';
     if (!formData.quantity) newErrors.quantity = 'Quantity is required';
     if (!formData.starting_price) newErrors.starting_price = 'Starting price is required';
-    if (!formData.location) newErrors.location = 'Location is required';
     if (!formData.pincode) newErrors.pincode = 'Pincode is required';
     if (!formData.expiry_time) newErrors.expiry_time = 'Expiry time is required';
     
@@ -109,11 +126,20 @@ const CreateBargainModal = ({ userRole, onClose, onBargainCreated }) => {
     }
 
     // Validate quantity and price are positive numbers
-    if (formData.quantity && parseFloat(formData.quantity) <= 0) {
-      newErrors.quantity = 'Quantity must be positive';
+    if (formData.quantity && (isNaN(formData.quantity) || parseFloat(formData.quantity) <= 0)) {
+      newErrors.quantity = 'Quantity must be a positive number';
     }
-    if (formData.starting_price && parseFloat(formData.starting_price) <= 0) {
-      newErrors.starting_price = 'Price must be positive';
+    if (formData.starting_price && (isNaN(formData.starting_price) || parseFloat(formData.starting_price) <= 0)) {
+      newErrors.starting_price = 'Price must be a positive number';
+    }
+
+    // Validate expiry time is in the future
+    if (formData.expiry_time) {
+      const expiryDate = new Date(formData.expiry_time);
+      const now = new Date();
+      if (expiryDate <= now) {
+        newErrors.expiry_time = 'Expiry time must be in the future';
+      }
     }
 
     setErrors(newErrors);
@@ -135,18 +161,26 @@ const CreateBargainModal = ({ userRole, onClose, onBargainCreated }) => {
         ? '/api/v1/bargain/public/create'
         : '/api/v1/bargain/private/create';
 
+      // Convert expiry time to hours from now
+      const expiryDate = new Date(formData.expiry_time);
+      const now = new Date();
+      const hoursFromNow = Math.ceil((expiryDate - now) / (1000 * 60 * 60));
+
       const payload = {
-        ...formData,
-        quantity: parseFloat(formData.quantity),
-        starting_price: parseFloat(formData.starting_price),
-        expiry_time: new Date(formData.expiry_time).toISOString(),
-        type: bargainType
+        product_id: formData.product_id,
+        quantity: parseInt(formData.quantity),
+        initial_bid_price: parseFloat(formData.starting_price),
+        location_pincode: formData.pincode,
+        expires_in_hours: hoursFromNow,
+        room_type: bargainType
       };
 
-      // Remove target_seller_id for public bargains
-      if (bargainType === 'public') {
-        delete payload.target_seller_id;
+      // Add target seller for private bargains
+      if (bargainType === 'private') {
+        payload.seller_id = formData.target_seller_id;
       }
+
+      console.log('Sending payload:', payload);
 
       const response = await fetch(`http://localhost:8000${endpoint}`, {
         method: 'POST',
@@ -158,13 +192,15 @@ const CreateBargainModal = ({ userRole, onClose, onBargainCreated }) => {
       });
 
       const data = await response.json();
+      console.log('Response:', data);
 
       if (response.ok) {
-        onBargainCreated(data.bargain);
+        onBargainCreated(data);
       } else {
         setErrors({ submit: data.detail || 'Failed to create bargain' });
       }
     } catch (error) {
+      console.error('Error creating bargain:', error);
       setErrors({ submit: 'Network error. Please try again.' });
     } finally {
       setLoading(false);
@@ -218,7 +254,7 @@ const CreateBargainModal = ({ userRole, onClose, onBargainCreated }) => {
             >
               <option value="">Select a product</option>
               {products.map(product => (
-                <option key={product.id} value={product.id}>
+                <option key={product.product_id} value={product.product_id}>
                   {product.name} - {product.category}
                 </option>
               ))}
@@ -256,18 +292,6 @@ const CreateBargainModal = ({ userRole, onClose, onBargainCreated }) => {
 
           <div className="form-row">
             <div className="form-group">
-              <label>Location *</label>
-              <input
-                type="text"
-                value={formData.location}
-                onChange={(e) => handleInputChange('location', e.target.value)}
-                placeholder="Enter location"
-                className={errors.location ? 'error' : ''}
-              />
-              {errors.location && <span className="error-text">{errors.location}</span>}
-            </div>
-
-            <div className="form-group">
               <label>Pincode *</label>
               <input
                 type="text"
@@ -304,8 +328,8 @@ const CreateBargainModal = ({ userRole, onClose, onBargainCreated }) => {
               >
                 <option value="">Select a seller</option>
                 {sellers.map(seller => (
-                  <option key={seller.id} value={seller.id}>
-                    {seller.name} - {seller.location}
+                  <option key={seller.seller_id} value={seller.seller_id}>
+                    {seller.name}
                   </option>
                 ))}
               </select>

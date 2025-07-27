@@ -321,6 +321,44 @@ Authorization: Bearer <token>
 }
 ```
 
+### 21. Get Product Pricing
+```http
+GET /inventory/pricing/{product_id}?quantity=50&purchase_type=solo_singletime
+Authorization: Bearer <token>
+```
+**Query Parameters:**
+- `quantity`: int (required) - Quantity to purchase
+- `purchase_type`: string (default: "solo_singletime") - Type of purchase: "solo_singletime", "subscription", or "group"
+
+**Response:**
+```json
+{
+  "product_id": "123e4567-e89b-12d3-a456-426614174000",
+  "product_name": "Organic Rice",
+  "quantity_requested": 50,
+  "purchase_type": "solo_singletime",
+  "pricing": {
+    "original_total": 1250.00,
+    "discounted_total": 1125.00,
+    "total_savings": 125.00,
+    "savings_percentage": 10.0,
+    "average_price_per_unit": 22.50
+  },
+  "batch_breakdown": [
+    {
+      "inventory_id": "inv-123",
+      "quantity_from_batch": 50,
+      "original_price_per_unit": 25.00,
+      "discounted_price_per_unit": 22.50,
+      "discount_applied": 10.0,
+      "batch_total": 1125.00,
+      "expiry_date": "2025-12-31"
+    }
+  ],
+  "available_quantity": 200
+}
+```
+
 ---
 
 ## 🛒 Order Management
@@ -333,18 +371,24 @@ Authorization: Bearer <token>
 **Request Body:**
 ```json
 {
-  "seller_id": "456e7890-e12b-34d5-a678-901234567890",
-  "estimated_delivery_date": "2024-01-20",
+  "order_data": {
+    "seller_id": "456e7890-e12b-34d5-a678-901234567890",
+    "estimated_delivery_date": "2024-01-20",
+    "order_type": "individual"
+  },
   "order_items": [
     {
       "product_id": "123e4567-e89b-12d3-a456-426614174000",
-      "quantity": 5
+      "quantity": 5,
+      "price_per_unit": 25.50
     },
     {
       "product_id": "789e0123-e45f-67g8-a901-234567890123",
-      "quantity": 3
+      "quantity": 3,
+      "price_per_unit": 15.00
     }
-  ]
+  ],
+  "purchase_type": "solo_singletime"
 }
 ```
 **Response:**
@@ -353,6 +397,8 @@ Authorization: Bearer <token>
   "order_id": "ord-123456",
   "buyer_id": "buyer-uuid",
   "seller_id": "seller-uuid",
+  "group_buyer_ids": null,
+  "order_type": "individual",
   "total_price": 127.50,
   "order_status": "Pending",
   "estimated_delivery_date": "2024-01-20",
@@ -360,7 +406,207 @@ Authorization: Bearer <token>
 }
 ```
 
-### 22. Update Order Status
+### 22. Calculate Order Pricing (Buyer Only)
+```http
+POST /order/calculate-pricing
+Authorization: Bearer <token>
+```
+**Request Body:**
+```json
+{
+  "order_items": [
+    {
+      "product_id": "123e4567-e89b-12d3-a456-426614174000",
+      "quantity": 50,
+      "price_per_unit": 25.00
+    }
+  ],
+  "seller_id": "456e7890-e12b-34d5-a678-901234567890",
+  "purchase_type": "solo_singletime"
+}
+```
+**Response:**
+```json
+{
+  "seller_id": "456e7890-e12b-34d5-a678-901234567890",
+  "purchase_type": "solo_singletime",
+  "summary": {
+    "total_original_price": 1250.00,
+    "total_discounted_price": 1125.00,
+    "total_savings": 125.00,
+    "overall_savings_percentage": 10.0
+  },
+  "item_breakdowns": [
+    {
+      "product_id": "123e4567-e89b-12d3-a456-426614174000",
+      "product_name": "Organic Rice",
+      "quantity": 50,
+      "original_total": 1250.00,
+      "discounted_total": 1125.00,
+      "savings": 125.00,
+      "savings_percentage": 10.0,
+      "batch_details": [
+        {
+          "inventory_id": "inv-123",
+          "quantity_from_batch": 50,
+          "original_price_per_unit": 25.00,
+          "discounted_price_per_unit": 22.50,
+          "discount_applied": 10.0,
+          "batch_total": 1125.00,
+          "expiry_date": "2025-12-31"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### 23. Create Group Order (Buyer Only)
+```http
+POST /order/create
+Authorization: Bearer <token>
+```
+**Request Body:**
+```json
+{
+  "order_data": {
+    "seller_id": "456e7890-e12b-34d5-a678-901234567890",
+    "estimated_delivery_date": "2024-01-20",
+    "order_type": "group"
+  },
+  "order_items": [
+    {
+      "product_id": "123e4567-e89b-12d3-a456-426614174000",
+      "quantity": 50,
+      "price_per_unit": 25.00
+    }
+  ],
+  "purchase_type": "solo_singletime"
+}
+```
+**Response:**
+```json
+{
+  "order_id": "ord-123456",
+  "buyer_id": "buyer-uuid",
+  "seller_id": "seller-uuid",
+  "group_buyer_ids": ["buyer-uuid"],
+  "order_type": "group",
+  "total_price": 1125.00,
+  "order_status": "Pending",
+  "estimated_delivery_date": "2024-01-20",
+  "order_date": "2024-01-15T10:30:00Z"
+}
+```
+
+### 24. Join Group Order (Buyer Only)
+```http
+POST /order/group/join
+Authorization: Bearer <token>
+```
+**Request Body:**
+```json
+{
+  "order_id": "ord-123456",
+  "quantity_requested": 20
+}
+```
+**Response:**
+```json
+{
+  "participant_id": "part-123456",
+  "order_id": "ord-123456",
+  "buyer_id": "buyer2-uuid",
+  "quantity_share": 20,
+  "price_share": 450.00,
+  "status": "pending",
+  "joined_at": "2024-01-15T11:00:00Z",
+  "buyer_info": null
+}
+```
+
+### 25. Get Available Group Orders (Buyer Only)
+```http
+GET /order/group/available?seller_id=456e7890-e12b-34d5-a678-901234567890&skip=0&limit=20
+Authorization: Bearer <token>
+```
+**Query Parameters:**
+- `seller_id`: UUID (optional) - Filter by specific seller
+- `product_category`: string (optional) - Filter by product category
+- `max_distance_km`: int (optional) - Filter by distance
+- `skip`: int (default: 0) - Pagination offset
+- `limit`: int (default: 20, max: 100) - Pagination limit
+
+**Response:**
+```json
+[
+  {
+    "order_id": "ord-123456",
+    "primary_buyer_id": "buyer-uuid",
+    "seller_id": "seller-uuid",
+    "total_participants": 2,
+    "total_quantity": 70,
+    "total_price": 1575.00,
+    "order_status": "Pending",
+    "order_type": "group",
+    "participants": [],
+    "estimated_delivery_date": "2024-01-20",
+    "order_date": "2024-01-15T10:30:00Z"
+  }
+]
+```
+
+### 26. Get Group Order Details
+```http
+GET /order/group/{order_id}
+Authorization: Bearer <token>
+```
+**Response:**
+```json
+{
+  "order_id": "ord-123456",
+  "primary_buyer_id": "buyer-uuid",
+  "seller_id": "seller-uuid",
+  "total_participants": 2,
+  "total_quantity": 70,
+  "total_price": 1575.00,
+  "order_status": "Pending",
+  "order_type": "group",
+  "participants": [
+    {
+      "participant_id": "part-123",
+      "order_id": "ord-123456",
+      "buyer_id": "buyer-uuid",
+      "quantity_share": 50,
+      "price_share": 1125.00,
+      "status": "confirmed",
+      "joined_at": "2024-01-15T10:30:00Z",
+      "buyer_info": {
+        "email": "buyer@example.com",
+        "mobile_number": "+1234567890",
+        "shipping_address": "123 Main St",
+        "shipping_pincode": "12345"
+      }
+    }
+  ],
+  "estimated_delivery_date": "2024-01-20",
+  "order_date": "2024-01-15T10:30:00Z"
+}
+```
+
+### 27. Update Group Order Participant Status
+```http
+PUT /order/group/participant/{participant_id}/status?new_status=confirmed
+Authorization: Bearer <token>
+```
+**Response:**
+```json
+{
+  "message": "Participant status updated to confirmed"
+}
+```
+
+### 28. Update Order Status
 ```http
 PUT /order/update/{order_id}
 Authorization: Bearer <token>
@@ -373,7 +619,7 @@ Authorization: Bearer <token>
 }
 ```
 
-### 23. Get Order Details
+### 29. Get Order Details
 ```http
 GET /order/{order_id}
 Authorization: Bearer <token>
@@ -384,6 +630,8 @@ Authorization: Bearer <token>
   "order_id": "ord-123456",
   "buyer_id": "buyer-uuid",
   "seller_id": "seller-uuid",
+  "group_buyer_ids": ["buyer-uuid", "buyer2-uuid"],
+  "order_type": "individual",
   "total_price": 127.50,
   "order_status": "Pending",
   "estimated_delivery_date": "2024-01-20",
@@ -396,11 +644,12 @@ Authorization: Bearer <token>
       "quantity": 5,
       "price_per_unit": 20.50
     }
-  ]
+  ],
+  "group_buyers_info": null
 }
 ```
 
-### 24. Get All Orders
+### 30. Get All Orders
 ```http
 GET /order/?skip=0&limit=10&order_status=Pending
 Authorization: Bearer <token>
@@ -416,7 +665,7 @@ Authorization: Bearer <token>
 
 ## 💬 Live Bargaining System
 
-### 25. Create Public Bargain (Buyer Only)
+### 31. Create Public Bargain (Buyer Only)
 ```http
 POST /bargain/public/create
 Authorization: Bearer <token>
@@ -449,7 +698,7 @@ Authorization: Bearer <token>
 }
 ```
 
-### 26. Get Available Public Bargains (Seller Only)
+### 32. Get Available Public Bargains (Seller Only)
 ```http
 GET /bargain/public/available?location_pincode=12345&category=Vegetables&skip=0&limit=20
 Authorization: Bearer <token>
@@ -480,7 +729,7 @@ Authorization: Bearer <token>
 ]
 ```
 
-### 27. Respond to Public Bargain (Seller Only)
+### 33. Respond to Public Bargain (Seller Only)
 ```http
 POST /bargain/public/{room_id}/respond
 Authorization: Bearer <token>
@@ -494,7 +743,7 @@ Authorization: Bearer <token>
 }
 ```
 
-### 28. Create Private Bargain (Buyer Only)
+### 34. Create Private Bargain (Buyer Only)
 ```http
 POST /bargain/private/create
 Authorization: Bearer <token>
@@ -510,7 +759,7 @@ Authorization: Bearer <token>
 }
 ```
 
-### 29. Place Bid in Room
+### 35. Place Bid in Room
 ```http
 POST /bargain/{room_id}/bid
 Authorization: Bearer <token>
@@ -525,7 +774,7 @@ Authorization: Bearer <token>
 }
 ```
 
-### 30. Accept Bargain
+### 36. Accept Bargain
 ```http
 POST /bargain/{room_id}/accept
 Authorization: Bearer <token>
@@ -547,7 +796,7 @@ Authorization: Bearer <token>
 }
 ```
 
-### 31. Get Bargain Room Details
+### 37. Get Bargain Room Details
 ```http
 GET /bargain/{room_id}
 Authorization: Bearer <token>
@@ -592,7 +841,7 @@ Authorization: Bearer <token>
 }
 ```
 
-### 32. Get My Bargains
+### 38. Get My Bargains
 ```http
 GET /bargain/my-bargains?room_type=public&status=active&skip=0&limit=20
 Authorization: Bearer <token>
@@ -607,7 +856,7 @@ Authorization: Bearer <token>
 
 ## 🔄 Real-time WebSocket Connection
 
-### 33. WebSocket Endpoint for Live Bargaining
+### 39. WebSocket Endpoint for Live Bargaining
 ```
 WebSocket: /bargain/{room_id}/ws?token=<jwt_token>
 ```
@@ -739,7 +988,11 @@ Most endpoints return data directly or in this format:
 | Create Products | ❌ | ✅ | ✅ | ❌ |
 | Manage Inventory | ❌ | ✅ | ✅ | ❌ |
 | Create Orders | ✅ | ❌ | ✅ | ❌ |
+| Create Group Orders | ✅ | ❌ | ✅ | ❌ |
+| Join Group Orders | ✅ | ❌ | ✅ | ❌ |
+| View Group Orders | ✅ | ✅ | ✅ | ❌ |
 | Update Order Status | ❌ | ✅ | ✅ | ❌ |
+| Calculate Pricing | ✅ | ❌ | ✅ | ❌ |
 | Create Public Bargains | ✅ | ❌ | ✅ | ❌ |
 | Respond to Bargains | ❌ | ✅ | ✅ | ❌ |
 | Private Bargaining | ✅ | ✅ | ✅ | ❌ |
@@ -840,6 +1093,89 @@ const fetchProducts = async (page = 0, limit = 10, filters = {}) => {
 };
 ```
 
+### 5. Group Order Management
+```javascript
+// Create a group order
+const createGroupOrder = async (orderData, orderItems) => {
+  const response = await fetch('/api/v1/order/create', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      order_data: { ...orderData, order_type: "group" },
+      order_items: orderItems,
+      purchase_type: "solo_singletime"
+    })
+  });
+  
+  return await response.json();
+};
+
+// Join an existing group order
+const joinGroupOrder = async (orderId, quantityRequested) => {
+  const response = await fetch('/api/v1/order/group/join', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      order_id: orderId,
+      quantity_requested: quantityRequested
+    })
+  });
+  
+  return await response.json();
+};
+
+// Get available group orders
+const getAvailableGroupOrders = async (filters = {}) => {
+  const params = new URLSearchParams(filters);
+  const response = await fetch(`/api/v1/order/group/available?${params}`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  
+  return await response.json();
+};
+```
+
+### 6. Pricing Calculation
+```javascript
+// Calculate pricing before placing order
+const calculatePricing = async (orderItems, sellerId, purchaseType = "solo_singletime") => {
+  const response = await fetch('/api/v1/order/calculate-pricing', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      order_items: orderItems,
+      seller_id: sellerId,
+      purchase_type: purchaseType
+    })
+  });
+  
+  return await response.json();
+};
+
+// Get product pricing for specific quantity
+const getProductPricing = async (productId, quantity, purchaseType = "solo_singletime") => {
+  const params = new URLSearchParams({
+    quantity: quantity,
+    purchase_type: purchaseType
+  });
+  
+  const response = await fetch(`/api/v1/inventory/pricing/${productId}?${params}`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  
+  return await response.json();
+};
+```
+
 ---
 
 ## 📝 Data Formats
@@ -885,6 +1221,19 @@ Currently no rate limiting is implemented, but consider adding it for production
 - Connection management for multiple users
 - Automatic cleanup on disconnect
 
+### Group Order System
+- Collaborative purchasing with multiple buyers
+- FIFO inventory allocation
+- Dynamic pricing based on bulk discounts
+- Proportional cost sharing among participants
+- Real-time inventory checks for availability
+
+### Advanced Pricing
+- Multi-tier discount system (solo, subscription, group)
+- FIFO inventory management
+- Batch-based pricing calculation
+- Real-time pricing endpoints for frontend integration
+
 ---
 
-This documentation provides everything needed to integrate the Saathi E-commerce API with any frontend framework. The API supports both traditional e-commerce operations and innovative real-time bargaining features.
+This documentation provides everything needed to integrate the Saathi E-commerce API with any frontend framework. The API supports traditional e-commerce operations, innovative group purchasing, real-time bargaining features, and advanced pricing calculations.

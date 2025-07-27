@@ -124,16 +124,7 @@ async def get_product_details(
     
     # Convert inventories to response format
     inventory_responses = [
-        InventoryResponse(
-            inventory_id=inv.inventory_id,
-            product_id=inv.product_id,
-            user_id=inv.user_id,
-            quantity=inv.quantity,
-            discount=inv.discount,
-            expiry_date=inv.expiry_date,
-            created_at=inv.created_at,
-            updated_at=inv.updated_at
-        )
+        InventoryResponse.from_orm_with_discount(inv)
         for inv in inventories
     ]
     
@@ -206,16 +197,7 @@ async def get_all_products(
         inventories = inventory_result.scalars().all()
         
         inventory_responses = [
-            InventoryResponse(
-                inventory_id=inv.inventory_id,
-                product_id=inv.product_id,
-                user_id=inv.user_id,
-                quantity=inv.quantity,
-                discount=inv.discount,
-                expiry_date=inv.expiry_date,
-                created_at=inv.created_at,
-                updated_at=inv.updated_at
-            )
+            InventoryResponse.from_orm_with_discount(inv)
             for inv in inventories
         ]
         
