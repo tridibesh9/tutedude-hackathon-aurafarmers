@@ -80,17 +80,16 @@ const Header = ({
               </div>
             )}
 
+            {showLocation && (
+              <div className="location-info">
+                <span className="location-icon">📍</span>
+                <span className="location-text">Location</span>
+              </div>
+            )}
             {showNotification && (
               <button className="notification-button">
                 <Bell size={20} />
               </button>
-            )}
-
-            {showLocation && (
-              <div className="location-info">
-                <span className="location-icon">📍</span>
-                <span className="location-text">Rohtak, Haryana</span>
-              </div>
             )}
 
             {/* Profile Icon */}

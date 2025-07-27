@@ -100,13 +100,19 @@ class Order(Base):
     __tablename__ = "orders"
 
     order_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    buyer_id = Column(UUID(as_uuid=True), ForeignKey("buyers.user_id"), nullable=False)  # Primary buyer
+    buyer_id = Column(
+        UUID(as_uuid=True), ForeignKey("buyers.user_id"), nullable=False
+    )  # Primary buyer
     seller_id = Column(
         UUID(as_uuid=True), ForeignKey("sellers.user_id"), nullable=False
     )
     # Array to store all buyer IDs for group orders (includes primary buyer)
-    group_buyer_ids = Column(ARRAY(String), nullable=True, default=None)  # For group orders
-    order_type = Column(String(20), default="individual")  # individual, group, subscription
+    group_buyer_ids = Column(
+        ARRAY(String), nullable=True, default=None
+    )  # For group orders
+    order_type = Column(
+        String(20), default="individual"
+    )  # individual, group, subscription
     total_price = Column(Numeric(10, 2), nullable=False)
     order_status = Column(
         String(50), default="Pending"
@@ -122,15 +128,17 @@ class Order(Base):
 
 class GroupOrderParticipant(Base):
     __tablename__ = "group_order_participants"
-    
+
     participant_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     order_id = Column(UUID(as_uuid=True), ForeignKey("orders.order_id"), nullable=False)
     buyer_id = Column(UUID(as_uuid=True), ForeignKey("buyers.user_id"), nullable=False)
     quantity_share = Column(Integer, nullable=False)  # How much this buyer is getting
     price_share = Column(Numeric(10, 2), nullable=False)  # How much this buyer pays
-    status = Column(String(20), default="pending")  # pending, confirmed, paid, cancelled
+    status = Column(
+        String(20), default="pending"
+    )  # pending, confirmed, paid, cancelled
     joined_at = Column(DateTime(timezone=True), server_default=func.now())
-    
+
     # Relationships
     order = relationship("Order")
     buyer = relationship("Buyer")
@@ -194,7 +202,9 @@ class Inventory(Base):
     )
     quantity = Column(Integer, nullable=False, default=0)
     # Three types of discounts: [solo_singletime, solo_subscription, group_discount]
-    discount = Column(ARRAY(Integer), nullable=True, default=[0, 0, 0])  # Discount in percentage
+    discount = Column(
+        ARRAY(Integer), nullable=True, default=[0, 0, 0]
+    )  # Discount in percentage
     user_id = Column(
         UUID(as_uuid=True), ForeignKey("base_users.user_id"), nullable=False
     )
@@ -286,28 +296,40 @@ class BargainMessage(Base):
 
 # Pydantic Models (API Request/Response)
 
+
 # Discount Structure Model
 class DiscountStructure(BaseModel):
-    solo_singletime: float = Field(default=0.0, ge=0, le=100, description="Single-time discount for solo purchases")
-    subscription: float = Field(default=0.0, ge=0, le=100, description="Subscription discount for solo purchases")
-    group: float = Field(default=0.0, ge=0, le=100, description="Group/bulk purchase discount")
-    
+    solo_singletime: float = Field(
+        default=0.0, ge=0, le=100, description="Single-time discount for solo purchases"
+    )
+    subscription: float = Field(
+        default=0.0,
+        ge=0,
+        le=100,
+        description="Subscription discount for solo purchases",
+    )
+    group: float = Field(
+        default=0.0, ge=0, le=100, description="Group/bulk purchase discount"
+    )
+
     def to_array(self) -> List[float]:
         """Convert to array format for database storage"""
         return [self.solo_singletime, self.subscription, self.group]
-    
+
     @classmethod
-    def from_array(cls, discount_array: Optional[List[float]]) -> 'DiscountStructure':
+    def from_array(cls, discount_array: Optional[List[float]]) -> "DiscountStructure":
         """Create from array format from database"""
         if not discount_array or len(discount_array) != 3:
             return cls()
         return cls(
             solo_singletime=discount_array[0],
             subscription=discount_array[1],
-            group=discount_array[2]
+            group=discount_array[2],
         )
-    
-    def get_applicable_discount(self, purchase_type: str = "solo_singletime", is_group: bool = False) -> float:
+
+    def get_applicable_discount(
+        self, purchase_type: str = "solo_singletime", is_group: bool = False
+    ) -> float:
         """Get the applicable discount based on purchase type"""
         if is_group:
             return self.group
@@ -315,8 +337,13 @@ class DiscountStructure(BaseModel):
             return self.subscription
         else:
             return self.solo_singletime
-    
-    def calculate_discounted_price(self, original_price: Decimal, purchase_type: str = "solo_singletime", is_group: bool = False) -> Decimal:
+
+    def calculate_discounted_price(
+        self,
+        original_price: Decimal,
+        purchase_type: str = "solo_singletime",
+        is_group: bool = False,
+    ) -> Decimal:
         """Calculate the final price after applying discount"""
         discount_percent = self.get_applicable_discount(purchase_type, is_group)
         discount_amount = original_price * Decimal(discount_percent) / Decimal(100)
@@ -443,7 +470,7 @@ class InventoryResponse(BaseModel):
 
     class Config:
         from_attributes = True
-    
+
     @classmethod
     def from_orm_with_discount(cls, inventory_orm):
         """Custom method to handle discount array conversion"""
@@ -456,7 +483,7 @@ class InventoryResponse(BaseModel):
             discount=discount_struct,
             expiry_date=inventory_orm.expiry_date,
             created_at=inventory_orm.created_at,
-            updated_at=inventory_orm.updated_at
+            updated_at=inventory_orm.updated_at,
         )
 
 
@@ -501,8 +528,12 @@ class SellerRatingResponse(BaseModel):
 class OrderCreate(BaseModel):
     seller_id: uuid.UUID
     estimated_delivery_date: Optional[date] = None
-    order_type: str = Field(default="individual", pattern="^(individual|group|subscription)$")
-    group_buyer_ids: Optional[List[uuid.UUID]] = Field(None, description="List of buyer IDs for group orders")
+    order_type: str = Field(
+        default="individual", pattern="^(individual|group|subscription)$"
+    )
+    group_buyer_ids: Optional[List[uuid.UUID]] = Field(
+        None, description="List of buyer IDs for group orders"
+    )
 
 
 class OrderItemCreate(BaseModel):
@@ -548,7 +579,9 @@ class OrderWithItemsResponse(BaseModel):
     estimated_delivery_date: Optional[date]
     order_date: datetime
     order_items: List[OrderItemResponse]
-    group_buyers_info: Optional[List[Dict[str, Any]]] = Field(default=None, description="Information about group buyers")
+    group_buyers_info: Optional[List[Dict[str, Any]]] = Field(
+        default=None, description="Information about group buyers"
+    )
 
     class Config:
         from_attributes = True
@@ -616,18 +649,24 @@ class ProductWithDiscountResponse(BaseModel):
     created_at: datetime
     discount: DiscountStructure
     discounted_prices: Dict[str, Decimal] = Field(default_factory=dict)
-    
+
     class Config:
         from_attributes = True
-    
+
     def __init__(self, **data):
         super().__init__(**data)
         # Calculate discounted prices for all types
-        if hasattr(self, 'discount') and hasattr(self, 'original_price'):
+        if hasattr(self, "discount") and hasattr(self, "original_price"):
             self.discounted_prices = {
-                "solo_singletime": self.discount.calculate_discounted_price(self.original_price, "solo_singletime"),
-                "solo_subscription": self.discount.calculate_discounted_price(self.original_price, "subscription"),
-                "group_purchase": self.discount.calculate_discounted_price(self.original_price, "solo_singletime", True)
+                "solo_singletime": self.discount.calculate_discounted_price(
+                    self.original_price, "solo_singletime"
+                ),
+                "solo_subscription": self.discount.calculate_discounted_price(
+                    self.original_price, "subscription"
+                ),
+                "group_purchase": self.discount.calculate_discounted_price(
+                    self.original_price, "solo_singletime", True
+                ),
             }
 
 

@@ -4,11 +4,13 @@ from typing import List
 
 router = APIRouter()
 
+
 # Endpoint: List all surplus items (for buyers)
 @router.get("/surplus-items", response_model=List[models.Inventory])
 def list_surplus_items():
     db = database.get_db()
     return crud.get_surplus_items(db)
+
 
 # Endpoint: Buy a surplus item
 @router.post("/buy-surplus/{item_id}")
