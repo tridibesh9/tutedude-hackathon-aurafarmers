@@ -577,11 +577,11 @@ const ProductListing = ({ category: categoryProp, userRole }) => {
       )}
 
       {/* Smart Cart Optimizer FAB */}
-      <div className="smart-cart-optimizer">
+      {/* <div className="smart-cart-optimizer">
         <button className="smart-cart-button">
           <span className="smart-cart-icon">💡</span>
         </button>
-      </div>
+      </div> */}
     </div>
   );
 };

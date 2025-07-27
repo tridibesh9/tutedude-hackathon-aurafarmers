@@ -14,6 +14,71 @@ from app.core.security import get_current_user
 
 router = APIRouter()
 
+# Surplus Endpoints for Seller
+@router.post("/mark-surplus/{inventory_id}")
+async def mark_inventory_surplus(
+    inventory_id: str,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: BaseUser = Depends(get_current_user)
+):
+    """
+    Mark an inventory batch as surplus (if near expiry).
+    """
+    # Check if user is a seller
+    seller_result = await db.execute(select(Seller).where(Seller.user_id == current_user.user_id))
+    seller = seller_result.scalar_one_or_none()
+    if not seller:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only sellers can manage inventory")
+    # Get inventory batch
+    inventory_result = await db.execute(select(Inventory).where(and_(Inventory.inventory_id == inventory_id, Inventory.user_id == current_user.user_id)))
+    inventory = inventory_result.scalar_one_or_none()
+    if not inventory:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Inventory batch not found")
+    inventory.is_surplus = True
+    await db.commit()
+    await db.refresh(inventory)
+    return inventory
+
+@router.post("/update-surplus-discount/{inventory_id}")
+async def update_surplus_discount(
+    inventory_id: str,
+    discount: float,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: BaseUser = Depends(get_current_user)
+):
+    """
+    Update discount for surplus inventory batch.
+    """
+    seller_result = await db.execute(select(Seller).where(Seller.user_id == current_user.user_id))
+    seller = seller_result.scalar_one_or_none()
+    if not seller:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only sellers can manage inventory")
+    inventory_result = await db.execute(select(Inventory).where(and_(Inventory.inventory_id == inventory_id, Inventory.user_id == current_user.user_id, Inventory.is_surplus == True)))
+    inventory = inventory_result.scalar_one_or_none()
+    if not inventory:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Surplus inventory batch not found")
+    inventory.discount = discount
+    await db.commit()
+    await db.refresh(inventory)
+    return inventory
+
+@router.get("/my-surplus-items", response_model=List[InventoryResponse])
+async def list_my_surplus_items(
+    db: AsyncSession = Depends(get_db_session),
+    current_user: BaseUser = Depends(get_current_user)
+):
+    """
+    List all surplus inventory batches for the current seller.
+    """
+    seller_result = await db.execute(select(Seller).where(Seller.user_id == current_user.user_id))
+    seller = seller_result.scalar_one_or_none()
+    if not seller:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only sellers can view inventory")
+    query = select(Inventory).where(and_(Inventory.user_id == current_user.user_id, Inventory.is_surplus == True))
+    result = await db.execute(query)
+    surplus_batches = result.scalars().all()
+    return surplus_batches
+
 @router.post("/add", response_model=InventoryResponse, status_code=status.HTTP_201_CREATED)
 async def add_inventory_batch(
     inventory_data: InventoryCreate,
