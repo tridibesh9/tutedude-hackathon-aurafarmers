@@ -1,122 +1,157 @@
 import React, { useState, useEffect, useRef } from 'react';
-import BidHistory from './BidHistory';
-import LiveChat from './LiveChat';
 import './BargainRoom.css';
 
 const BargainRoom = ({ bargain, userRole, onBack }) => {
+  const [messages, setMessages] = useState([]);
+  const [bids, setBids] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [newBid, setNewBid] = useState({ price: '', quantity: '', message: '' });
+  const [isConnected, setIsConnected] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState('Connecting...');
   const [roomData, setRoomData] = useState(bargain);
-  const [bidAmount, setBidAmount] = useState('');
-  const [bidMessage, setBidMessage] = useState('');
-  const [connected, setConnected] = useState(false);
-  const [activeUsers, setActiveUsers] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const websocketRef = useRef(null);
+  const ws = useRef(null);
 
   useEffect(() => {
     connectWebSocket();
-    fetchRoomDetails();
-
     return () => {
-      if (websocketRef.current) {
-        websocketRef.current.close();
+      if (ws.current) {
+        ws.current.close();
       }
     };
   }, [bargain.id]);
 
   const connectWebSocket = () => {
     const token = localStorage.getItem('token');
-    const wsUrl = `ws://localhost:8000/api/v1/bargain/${bargain.id}/ws?token=${token}`;
+    if (!token) {
+      setConnectionStatus('No authentication token found');
+      return;
+    }
+
+    // Construct WebSocket URL
+    const wsUrl = `ws://localhost:8000/api/v1/bargain/${bargain.id}/ws?token=${encodeURIComponent(token)}`;
     
-    websocketRef.current = new WebSocket(wsUrl);
-
-    websocketRef.current.onopen = () => {
-      setConnected(true);
-      setError('');
-    };
-
-    websocketRef.current.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      handleWebSocketMessage(data);
-    };
-
-    websocketRef.current.onclose = () => {
-      setConnected(false);
-      // Attempt to reconnect after 3 seconds
-      setTimeout(() => {
-        if (!websocketRef.current || websocketRef.current.readyState === WebSocket.CLOSED) {
-          connectWebSocket();
-        }
-      }, 3000);
-    };
-
-    websocketRef.current.onerror = (error) => {
-      setError('Connection error. Retrying...');
-      console.error('WebSocket error:', error);
-    };
-  };
-
-  const handleWebSocketMessage = (data) => {
-    switch (data.type) {
-      case 'bid_update':
-        setRoomData(prev => ({
-          ...prev,
-          current_price: data.amount,
-          bid_history: data.bid_history || prev.bid_history
-        }));
-        break;
-      case 'user_joined':
-        setActiveUsers(prev => [...prev.filter(u => u.id !== data.user.id), data.user]);
-        break;
-      case 'user_left':
-        setActiveUsers(prev => prev.filter(u => u.id !== data.user.id));
-        break;
-      case 'bargain_accepted':
-        setRoomData(prev => ({ ...prev, status: 'completed', winner: data.winner }));
-        break;
-      case 'bargain_cancelled':
-        setRoomData(prev => ({ ...prev, status: 'cancelled' }));
-        break;
-      case 'active_users':
-        setActiveUsers(data.users);
-        break;
-      default:
-        console.log('Unknown message type:', data.type);
-    }
-  };
-
-  const fetchRoomDetails = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/v1/bargain/${bargain.id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      ws.current = new WebSocket(wsUrl);
 
-      if (response.ok) {
-        const data = await response.json();
-        setRoomData(data.bargain);
-      }
+      ws.current.onopen = () => {
+        console.log('WebSocket connected');
+        setIsConnected(true);
+        setConnectionStatus('Connected');
+        
+        // Request recent activity
+        ws.current.send(JSON.stringify({
+          type: 'get_recent_activity'
+        }));
+      };
+
+      ws.current.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        console.log('WebSocket message received:', data);
+        
+        switch (data.type) {
+          case 'auth_success':
+            console.log('Authentication successful');
+            break;
+            
+          case 'room_info':
+            console.log('Room info received:', data.room);
+            // Update room data with latest info
+            setRoomData(prev => ({
+              ...prev,
+              current_price: data.room.current_bid_price,
+              status: data.room.status
+            }));
+            break;
+            
+          case 'new_bid':
+            setBids(prev => [data.bid, ...prev]);
+            // Update current price
+            setRoomData(prev => ({
+              ...prev,
+              current_price: data.bid.bid_price
+            }));
+            break;
+            
+          case 'new_message':
+            setMessages(prev => [data.message, ...prev]);
+            break;
+            
+          case 'recent_activity':
+            setBids(data.bids || []);
+            setMessages(data.messages || []);
+            break;
+            
+          case 'bargain_accepted':
+            alert(`Bargain accepted! Final price: $${data.final_price} for quantity: ${data.quantity}`);
+            setRoomData(prev => ({
+              ...prev,
+              status: 'accepted'
+            }));
+            break;
+            
+          case 'user_joined':
+            console.log(`User ${data.user_id} joined the room`);
+            break;
+            
+          case 'user_left':
+            console.log(`User ${data.user_id} left the room`);
+            break;
+            
+          case 'error':
+            console.error('WebSocket error:', data.message);
+            setConnectionStatus(`Error: ${data.message}`);
+            break;
+            
+          case 'pong':
+            // Keep-alive response
+            break;
+            
+          default:
+            console.log('Unknown message type:', data);
+        }
+      };
+
+      ws.current.onclose = (event) => {
+        console.log('WebSocket disconnected:', event);
+        setIsConnected(false);
+        setConnectionStatus('Disconnected');
+        
+        // Attempt to reconnect after 3 seconds
+        setTimeout(() => {
+          if (!isConnected) {
+            console.log('Attempting to reconnect...');
+            setConnectionStatus('Reconnecting...');
+            connectWebSocket();
+          }
+        }, 3000);
+      };
+
+      ws.current.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        setConnectionStatus('Connection error');
+      };
+
     } catch (error) {
-      console.error('Error fetching room details:', error);
+      console.error('Failed to create WebSocket connection:', error);
+      setConnectionStatus('Failed to connect');
     }
   };
 
-  const handlePlaceBid = async () => {
-    if (!bidAmount || parseFloat(bidAmount) <= 0) {
-      setError('Please enter a valid bid amount');
+  const sendMessage = () => {
+    if (newMessage.trim() && ws.current && isConnected) {
+      ws.current.send(JSON.stringify({
+        type: 'chat_message',
+        content: newMessage.trim()
+      }));
+      setNewMessage('');
+    }
+  };
+
+  const placeBid = async () => {
+    if (!newBid.price || !newBid.quantity) {
+      alert('Please enter both price and quantity');
       return;
     }
-
-    const currentPrice = roomData.current_price || roomData.starting_price;
-    if (parseFloat(bidAmount) <= currentPrice) {
-      setError('Bid must be higher than current price');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
 
     try {
       const token = localStorage.getItem('token');
@@ -127,32 +162,30 @@ const BargainRoom = ({ bargain, userRole, onBack }) => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          amount: parseFloat(bidAmount),
-          message: bidMessage
+          bid_price: parseFloat(newBid.price),
+          quantity: parseInt(newBid.quantity),
+          message: newBid.message || '',
+          is_counter_offer: false
         })
       });
 
-      const data = await response.json();
-
       if (response.ok) {
-        setBidAmount('');
-        setBidMessage('');
+        setNewBid({ price: '', quantity: '', message: '' });
+        // The WebSocket will receive the new bid automatically
       } else {
-        setError(data.detail || 'Failed to place bid');
+        const error = await response.json();
+        alert(`Failed to place bid: ${error.detail || 'Unknown error'}`);
       }
     } catch (error) {
-      setError('Network error. Please try again.');
-    } finally {
-      setLoading(false);
+      console.error('Error placing bid:', error);
+      alert('Failed to place bid. Please try again.');
     }
   };
 
-  const handleAcceptBid = async () => {
-    if (!window.confirm('Are you sure you want to accept the current bid? This will end the bargaining.')) {
+  const acceptBid = async (bidId) => {
+    if (!confirm('Are you sure you want to accept this bid?')) {
       return;
     }
-
-    setLoading(true);
 
     try {
       const token = localStorage.getItem('token');
@@ -161,208 +194,214 @@ const BargainRoom = ({ bargain, userRole, onBack }) => {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({
+          bid_id: bidId
+        })
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        setError(data.detail || 'Failed to accept bid');
+      if (response.ok) {
+        const result = await response.json();
+        alert(`Bargain accepted! ${result.message}`);
+      } else {
+        const error = await response.json();
+        alert(`Failed to accept bid: ${error.detail || 'Unknown error'}`);
       }
     } catch (error) {
-      setError('Network error. Please try again.');
-    } finally {
-      setLoading(false);
+      console.error('Error accepting bid:', error);
+      alert('Failed to accept bid. Please try again.');
     }
   };
 
-  const formatTimeRemaining = (expiryTime) => {
-    const now = new Date();
-    const expiry = new Date(expiryTime);
-    const diff = expiry - now;
+  // Keep connection alive
+  useEffect(() => {
+    const pingInterval = setInterval(() => {
+      if (ws.current && isConnected) {
+        ws.current.send(JSON.stringify({ type: 'ping' }));
+      }
+    }, 30000); // Ping every 30 seconds
 
-    if (diff <= 0) return 'Expired';
+    return () => clearInterval(pingInterval);
+  }, [isConnected]);
 
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    } else if (minutes > 0) {
-      return `${minutes}m ${seconds}s`;
-    }
-    return `${seconds}s`;
-  };
-
-  const isExpired = new Date(roomData.expiry_time) <= new Date();
-  const canBid = !isExpired && roomData.status === 'active' && userRole !== 'seller';
-  const canAccept = !isExpired && roomData.status === 'active' && userRole === 'seller';
-  const currentPrice = roomData.current_price || roomData.starting_price;
+  // Safe property access with fallbacks
+  const productName = roomData.product_name || roomData.name || 'Unknown Product';
+  const category = roomData.category || 'Unknown Category';
+  const startingPrice = roomData.starting_price || roomData.initial_bid_price || '0';
+  const currentPrice = roomData.current_price || roomData.current_bid_price || startingPrice;
+  const quantity = roomData.quantity || roomData.initial_quantity || 0;
+  const location = roomData.location || roomData.location_pincode || 'Unknown Location';
+  const status = roomData.status || roomData.bargain_status || 'Unknown Status';
+  const expiryTime = roomData.expiry_time || roomData.expires_at;
 
   return (
     <div className="bargain-room">
-      {/* Header */}
       <div className="room-header">
-        <button className="back-btn" onClick={onBack}>
-          ← Back to Dashboard
-        </button>
-        <div className="connection-status">
-          <div className={`status-indicator ${connected ? 'connected' : 'disconnected'}`}>
-            {connected ? '● Connected' : '● Disconnected'}
-          </div>
-          <div className="active-users-count">
-            {activeUsers.length} users online
-          </div>
+        <button onClick={onBack} className="back-btn">← Back to Dashboard</button>
+        <h2>Bargain Room - {productName}</h2>
+        <div className="connection-status" style={{
+          color: isConnected ? 'green' : 'red',
+          fontSize: '12px'
+        }}>
+          {connectionStatus}
         </div>
       </div>
 
-      <div className="room-content">
-        {/* Left Panel - Product Info & Bidding */}
-        <div className="left-panel">
-          {/* Product Details */}
-          <div className="product-section">
-            <h2>{roomData.product_name}</h2>
-            <div className="product-meta">
-              <span className="category">{roomData.category}</span>
-              <span className="quantity">{roomData.quantity} {roomData.unit || 'units'}</span>
-              <span className="location">{roomData.location} - {roomData.pincode}</span>
-            </div>
-            
-            {roomData.description && (
-              <div className="product-description">
-                <h4>Description</h4>
-                <p>{roomData.description}</p>
-              </div>
+      <div className="room-content" style={{ display: 'flex', gap: '20px', height: '70vh' }}>
+        {/* Bargain Details */}
+        <div className="bargain-details" style={{ flex: '1', padding: '20px', border: '1px solid #ddd', borderRadius: '8px' }}>
+          <h3>Bargain Details</h3>
+          <div><strong>Product:</strong> {productName}</div>
+          <div><strong>Category:</strong> {category}</div>
+          <div><strong>Starting Price:</strong> ${startingPrice}</div>
+          <div><strong>Current Price:</strong> ${currentPrice}</div>
+          <div><strong>Quantity:</strong> {quantity}</div>
+          <div><strong>Location:</strong> {location}</div>
+          <div><strong>Status:</strong> {status}</div>
+          {expiryTime && (
+            <div><strong>Expires:</strong> {new Date(expiryTime).toLocaleString()}</div>
+          )}
+        </div>
+
+        {/* Bids Section */}
+        <div className="bids-section" style={{ flex: '1', padding: '20px', border: '1px solid #ddd', borderRadius: '8px' }}>
+          <h3>Bids</h3>
+          <div className="bids-list" style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: '20px' }}>
+            {bids.length === 0 ? (
+              <p>No bids yet</p>
+            ) : (
+              bids.map((bid, index) => (
+                <div key={bid.bid_id || index} className="bid-item" style={{
+                  padding: '10px',
+                  margin: '5px 0',
+                  border: '1px solid #eee',
+                  borderRadius: '4px',
+                  backgroundColor: bid.user_type === 'buyer' ? '#e3f2fd' : '#f3e5f5'
+                }}>
+                  <div><strong>{bid.user_type}:</strong> ${bid.bid_price} for {bid.quantity} units</div>
+                  {bid.message && <div><em>"{bid.message}"</em></div>}
+                  <div style={{ fontSize: '12px', color: '#666' }}>
+                    {new Date(bid.created_at).toLocaleString()}
+                  </div>
+                  {/* Accept button for buyers accepting seller bids, or sellers accepting buyer bids */}
+                  {((userRole === 'buyer' && bid.user_type === 'seller') || 
+                    (userRole === 'seller' && bid.user_type === 'buyer')) && 
+                    status !== 'accepted' && status !== 'completed' && (
+                    <button 
+                      onClick={() => acceptBid(bid.bid_id)}
+                      style={{
+                        marginTop: '5px',
+                        padding: '5px 10px',
+                        backgroundColor: '#28a745',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Accept Bid
+                    </button>
+                  )}
+                </div>
+              ))
             )}
           </div>
 
-          {/* Current Bid Display */}
-          <div className="current-bid-section">
-            <div className="bid-display">
-              <h3>Current Price</h3>
-              <div className="price-amount">₹{currentPrice}</div>
-              {roomData.current_price && roomData.current_price !== roomData.starting_price && (
-                <div className="starting-price">Starting: ₹{roomData.starting_price}</div>
-              )}
-            </div>
-            
-            <div className="bid-info">
-              <div className="time-remaining">
-                <span className="label">Time Remaining:</span>
-                <span className={`time ${isExpired ? 'expired' : ''}`}>
-                  {formatTimeRemaining(roomData.expiry_time)}
-                </span>
-              </div>
-              
-              {roomData.status === 'completed' && (
-                <div className="winner-info">
-                  <span className="label">Winner:</span>
-                  <span className="winner">{roomData.winner?.name || 'Unknown'}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Bidding Form */}
-          {canBid && (
-            <div className="bidding-section">
+          {/* Place Bid Form */}
+          {status === 'active' && (
+            <div className="place-bid">
               <h4>Place Your Bid</h4>
-              {error && <div className="error-message">{error}</div>}
-              
-              <div className="bid-form">
-                <div className="bid-input-group">
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={bidAmount}
-                    onChange={(e) => setBidAmount(e.target.value)}
-                    placeholder={`Minimum: ₹${currentPrice + 1}`}
-                    min={currentPrice + 1}
-                    className="bid-amount-input"
-                  />
-                  <span className="currency">₹</span>
-                </div>
-                
+              <div style={{ marginBottom: '10px' }}>
+                <input
+                  type="number"
+                  placeholder="Price"
+                  value={newBid.price}
+                  onChange={(e) => setNewBid(prev => ({ ...prev, price: e.target.value }))}
+                  style={{ marginRight: '10px', padding: '5px' }}
+                />
+                <input
+                  type="number"
+                  placeholder="Quantity"
+                  value={newBid.quantity}
+                  onChange={(e) => setNewBid(prev => ({ ...prev, quantity: e.target.value }))}
+                  style={{ padding: '5px' }}
+                />
+              </div>
+              <div style={{ marginBottom: '10px' }}>
                 <input
                   type="text"
-                  value={bidMessage}
-                  onChange={(e) => setBidMessage(e.target.value)}
-                  placeholder="Optional message with your bid"
-                  className="bid-message-input"
+                  placeholder="Message (optional)"
+                  value={newBid.message}
+                  onChange={(e) => setNewBid(prev => ({ ...prev, message: e.target.value }))}
+                  style={{ width: '100%', padding: '5px' }}
                 />
-                
-                <button
-                  onClick={handlePlaceBid}
-                  disabled={loading || !bidAmount}
-                  className="place-bid-btn"
-                >
-                  {loading ? 'Placing Bid...' : 'Place Bid'}
-                </button>
               </div>
-            </div>
-          )}
-
-          {/* Accept Bid Button for Sellers */}
-          {canAccept && roomData.current_price && (
-            <div className="accept-section">
-              <button
-                onClick={handleAcceptBid}
-                disabled={loading}
-                className="accept-bid-btn"
+              <button 
+                onClick={placeBid}
+                disabled={!isConnected}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: isConnected ? '#007bff' : '#ccc',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: isConnected ? 'pointer' : 'not-allowed'
+                }}
               >
-                {loading ? 'Accepting...' : `Accept Current Bid (₹${currentPrice})`}
+                Place Bid
               </button>
-            </div>
-          )}
-
-          {/* Status Messages */}
-          {isExpired && (
-            <div className="status-message expired">
-              This bargain has expired
-            </div>
-          )}
-          
-          {roomData.status === 'completed' && (
-            <div className="status-message completed">
-              Bargain completed! Winner: {roomData.winner?.name || 'Unknown'}
-            </div>
-          )}
-          
-          {roomData.status === 'cancelled' && (
-            <div className="status-message cancelled">
-              This bargain has been cancelled
             </div>
           )}
         </div>
 
-        {/* Right Panel - Chat & History */}
-        <div className="right-panel">
-          {/* Active Users */}
-          <div className="active-users-section">
-            <h4>Active Users ({activeUsers.length})</h4>
-            <div className="users-list">
-              {activeUsers.map(user => (
-                <div key={user.id} className="user-item">
-                  <div className="user-avatar">{user.name?.charAt(0) || 'U'}</div>
-                  <span className="user-name">{user.name}</span>
-                  <span className={`user-role ${user.role}`}>{user.role}</span>
+        {/* Chat Section */}
+        <div className="chat-section" style={{ flex: '1', padding: '20px', border: '1px solid #ddd', borderRadius: '8px' }}>
+          <h3>Chat</h3>
+          <div className="messages-list" style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: '20px' }}>
+            {messages.length === 0 ? (
+              <p>No messages yet</p>
+            ) : (
+              messages.map((message, index) => (
+                <div key={message.message_id || index} className="message-item" style={{
+                  padding: '8px',
+                  margin: '5px 0',
+                  border: '1px solid #eee',
+                  borderRadius: '4px'
+                }}>
+                  <div>{message.content}</div>
+                  <div style={{ fontSize: '12px', color: '#666' }}>
+                    {new Date(message.created_at).toLocaleString()}
+                  </div>
                 </div>
-              ))}
-            </div>
+              ))
+            )}
+        
           </div>
 
-          {/* Bid History */}
-          <BidHistory 
-            bargainId={bargain.id} 
-            bidHistory={roomData.bid_history || []}
-          />
-
-          {/* Live Chat */}
-          <LiveChat 
-            bargainId={bargain.id}
-            websocket={websocketRef.current}
-            connected={connected}
-          />
+          <div className="send-message">
+            <input
+              type="text"
+              placeholder="Type a message..."
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+              style={{ width: '70%', padding: '5px', marginRight: '10px' }}
+            />
+            <button 
+              onClick={sendMessage}
+              disabled={!isConnected}
+              style={{
+                padding: '5px 15px',
+                backgroundColor: isConnected ? '#28a745' : '#ccc',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: isConnected ? 'pointer' : 'not-allowed'
+              }}
+            >
+              Send
+            </button>
+          </div>
         </div>
       </div>
     </div>
