@@ -2,47 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Inventory.css";
 import Header from "../../../components/Header/Header";
-
-// Simulated API call
-const fetchInventory = async () => {
-  // This will be replaced with actual API call
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve([
-        {
-          id: 1,
-          name: "Tomatoes",
-          quantity: 50,
-          price: 40,
-          category: "Vegetables",
-          lastUpdated: "2025-07-27",
-          unit: "kg",
-          expiry: "2025-08-15",
-        },
-        {
-          id: 2,
-          name: "Onions",
-          quantity: 25,
-          price: 35,
-          category: "Vegetables",
-          lastUpdated: "2025-07-26",
-          unit: "kg",
-          expiry: "2025-09-01",
-        },
-        {
-          id: 3,
-          name: "Potatoes",
-          quantity: 150,
-          price: 30,
-          category: "Vegetables",
-          lastUpdated: "2025-07-25",
-          unit: "kg",
-          expiry: "2025-08-30",
-        },
-      ]);
-    }, 1000);
-  });
-};
+import api from "../../../utils/api";
 
 const getExpiryStatus = (expiryDate) => {
   if (!expiryDate) return { text: "No expiry date", class: "" };
@@ -84,14 +44,17 @@ const Inventory = () => {
 
   const loadInventory = async () => {
     try {
-      const data = await fetchInventory();
-      // Sort by expiry date (soonest first)
-      const sortedData = data.sort((a, b) => {
-        const dateA = a.expiry ? new Date(a.expiry) : new Date("9999-12-31");
-        const dateB = b.expiry ? new Date(b.expiry) : new Date("9999-12-31");
-        return dateA - dateB;
-      });
-      setInventory(sortedData);
+      const response = await api.get("/inventory/my-inventory");
+      if (response.status === 200) {
+        const data = response.data;
+        // Sort by expiry date (soonest first)
+        const sortedData = data.sort((a, b) => {
+          const dateA = a.expiry ? new Date(a.expiry) : new Date("9999-12-31");
+          const dateB = b.expiry ? new Date(b.expiry) : new Date("9999-12-31");
+          return dateA - dateB;
+        });
+        setInventory(sortedData);
+      }
     } catch (error) {
       console.error("Error fetching inventory:", error);
     } finally {
@@ -120,94 +83,102 @@ const Inventory = () => {
   return (
     <div className="page-container">
       <Header title="Inventory" subtitle="Check your inventory" showSearch />
-      <div className="inventory-header">
-        <div className="header-left">
-          <h1>My Inventory</h1>
-          <button
-            className={`refresh-btn ${isRefreshing ? "spinning" : ""}`}
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+      <div className="dashboard-content">
+        <div className="inventory-header">
+          <div className="header-left">
+            <h1>My Inventory</h1>
+            <button
+              className={`refresh-btn ${isRefreshing ? "spinning" : ""}`}
+              onClick={handleRefresh}
+              disabled={isRefreshing}
             >
-              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38" />
-            </svg>
-            {isRefreshing ? "Refreshing..." : "Refresh"}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38" />
+              </svg>
+              {isRefreshing ? "Refreshing..." : "Refresh"}
+            </button>
+          </div>
+          <button className="add-inventory-btn" onClick={handleAddUpdate}>
+            Add New Item
           </button>
         </div>
-        <button className="add-inventory-btn" onClick={handleAddUpdate}>
-          Add New Item
-        </button>
-      </div>
 
-      {isLoading ? (
-        <div className="loading-state">
-          <div className="loader"></div>
-          <p>Loading inventory...</p>
-        </div>
-      ) : (
-        <>
-          <div className="inventory-grid">
-            {inventory.map((item) => (
-              <div
-                key={item.id}
-                className="inventory-card"
-                onClick={() => handleItemClick(item)}
-              >
-                <div className="inventory-card-header">
-                  <h3>{item.name}</h3>
-                  <span className="category-badge">{item.category}</span>
-                </div>
-                <div className="inventory-card-content">
-                  <p
-                    className={`quantity ${
-                      item.quantity < 50 ? "low-stock" : ""
-                    }`}
-                  >
-                    <strong>Quantity:</strong> {item.quantity} {item.unit}
-                  </p>
-                  <p>
-                    <strong>Price:</strong> ₹{item.price}/{item.unit}
-                  </p>
-                  {item.expiry && (
+        {isLoading ? (
+          <div className="loading-state">
+            <div className="loader"></div>
+            <p>Loading inventory...</p>
+          </div>
+        ) : (
+          <>
+            <div className="inventory-grid">
+              {inventory.map((item) => (
+                <div
+                  key={item.inventory_id}
+                  className="inventory-card"
+                  onClick={() => handleItemClick(item)}
+                >
+                  <div className="inventory-card-header">
+                    <h3>{item.name}</h3>
+                    <span className="category-badge">
+                      {item.category || "N/A"}
+                    </span>
+                  </div>
+                  <div className="inventory-card-content">
                     <p
-                      className={`expiry-status ${
-                        getExpiryStatus(item.expiry).class
+                      className={`quantity ${
+                        item.quantity < 50 ? "low-stock" : ""
                       }`}
                     >
-                      {getExpiryStatus(item.expiry).text}
+                      <strong>Quantity:</strong> {item.quantity}
                     </p>
-                  )}
-                  <p className="last-updated">
-                    Last updated: {item.lastUpdated}
-                  </p>
+                    <p>
+                      <strong>Discount:</strong>{" "}
+                      {item.discount ? `${item.discount}%` : "0%"}
+                    </p>
+                    {item.expiry_date && (
+                      <p
+                        className={`expiry-status ${
+                          getExpiryStatus(item.expiry_date).class
+                        }`}
+                      >
+                        {getExpiryStatus(item.expiry_date).text}
+                      </p>
+                    )}
+                    <p className="last-updated">
+                      Last updated:{" "}
+                      {item.updated_at
+                        ? new Date(item.updated_at).toLocaleString()
+                        : "Never"}
+                    </p>
+                  </div>
+                  <div className="card-overlay">
+                    <span>Click to Update</span>
+                  </div>
                 </div>
-                <div className="card-overlay">
-                  <span>Click to Update</span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {inventory.length === 0 && (
-            <div className="empty-state">
-              <p>No inventory items found</p>
-              <button className="add-inventory-btn" onClick={handleAddUpdate}>
-                Add Your First Item
-              </button>
+              ))}
             </div>
-          )}
-        </>
-      )}
+
+            {inventory.length === 0 && (
+              <div className="empty-state">
+                <p>No inventory items found</p>
+                <button className="add-inventory-btn" onClick={handleAddUpdate}>
+                  Add Your First Item
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 };

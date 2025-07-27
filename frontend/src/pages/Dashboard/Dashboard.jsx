@@ -1,16 +1,23 @@
 import React, { useEffect, useState } from "react";
 import { TrendingUp, Zap } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Header from "../../components/Header/Header";
 import "./Dashboard.css";
 import { apiHelpers, productAPI } from "../../utils/api";
+import ProductBuy from "../ProductBuy/ProductBuy";
 
 // Assuming UserRole is defined in a parent component like:
 // export type UserRole = 'buyer' | 'seller';
-const Dashboard = ({ userRole, onCategorySelect }) => {
+const Dashboard = ({ userRole }) => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [products, setProducts] = useState([]);
   const [error, setError] = useState("");
+
+  const handleCategoryClick = (categoryId) => {
+    navigate(`/products?category=${categoryId}`);
+  };
 
   const loadProducts = async (pageNum = 0, isRefresh = false) => {
     try {
@@ -68,18 +75,26 @@ const Dashboard = ({ userRole, onCategorySelect }) => {
   const quickActions =
     userRole === "buyer"
       ? [
-          { id: "reorder", name: "Reorder", icon: "🔄", style: "action-blue" },
           {
-            id: "credit",
-            name: "Partner Credit",
-            icon: "💳",
-            style: "action-green",
+            id: "orders",
+            name: "Orders",
+            icon: "📦",
+            style: "action-blue",
+            path: "/orders",
           },
           {
-            id: "bulk",
-            name: "Bulk Order",
-            icon: "📦",
+            id: "transactions",
+            name: "Transactions",
+            icon: "💰",
+            style: "action-green",
+            path: "/transactions",
+          },
+          {
+            id: "products",
+            name: "Products",
+            icon: "🛍️",
             style: "action-purple",
+            path: "/products",
           },
         ]
       : [
@@ -88,18 +103,42 @@ const Dashboard = ({ userRole, onCategorySelect }) => {
             name: "Inventory",
             icon: "📊",
             style: "action-blue",
+            path: "/inventory",
+          },
+          {
+            id: "products",
+            name: "Products",
+            icon: "🛍️",
+            style: "action-mint",
+            path: "/products",
           },
           {
             id: "deliveries",
             name: "Deliveries",
             icon: "🚚",
             style: "action-green",
+            path: "/deliveries",
+          },
+          {
+            id: "orders",
+            name: "Orders",
+            icon: "📦",
+            style: "action-yellow",
+            path: "/orders",
           },
           {
             id: "analytics",
             name: "Analytics",
             icon: "📈",
             style: "action-purple",
+            path: "/analytics",
+          },
+          {
+            id: "transactions",
+            name: "Transactions",
+            icon: "💰",
+            style: "action-amber",
+            path: "/transactions",
           },
         ];
 
@@ -125,7 +164,11 @@ const Dashboard = ({ userRole, onCategorySelect }) => {
           <h2 className="section-title">Quick Actions</h2>
           <div className="quick-actions-grid">
             {quickActions.map((action) => (
-              <button key={action.id} className="action-card">
+              <button
+                key={action.id}
+                className="action-card"
+                onClick={() => navigate(action.path)}
+              >
                 <div className={`action-icon-wrapper ${action.style}`}>
                   <span className="action-icon">{action.icon}</span>
                 </div>
@@ -142,7 +185,7 @@ const Dashboard = ({ userRole, onCategorySelect }) => {
             {categories.map((category) => (
               <button
                 key={category.id}
-                onClick={() => onCategorySelect(category.id)}
+                onClick={() => handleCategoryClick(category.name)}
                 className="category-card"
               >
                 <div className={`category-icon-wrapper ${category.style}`}>
@@ -204,6 +247,15 @@ const Dashboard = ({ userRole, onCategorySelect }) => {
                       <div>
                         <div className="section-item-name">{item.name}</div>
                         <div className="section-item-price">{item.price}</div>
+                        {/* Add Buy button to open ProductBuy page */}
+                        <button
+                          className="buy-button"
+                          onClick={() =>
+                            navigate(`/product-buy/${item.product_id}`)
+                          }
+                        >
+                          Buy
+                        </button>
                       </div>
                     </div>
                   </div>

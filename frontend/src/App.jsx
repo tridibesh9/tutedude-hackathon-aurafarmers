@@ -7,6 +7,7 @@ import {
   Outlet,
 } from "react-router-dom";
 import { authAPI } from "./utils/api.js";
+import { UserProvider } from "./contexts/UserContext";
 
 // Import your page components
 import Login from "./pages/AuthPages/Login.jsx";
@@ -21,6 +22,8 @@ import SurplusExchange from "./pages/SurplusExchange/SurplusExchange.jsx";
 import DigitalKhata from "./pages/DigitalKhata/DigitalKhata.jsx";
 import Navigation from "./pages/Navigation/Navigation.jsx";
 import BargainDashboard from "./components/Bargain/BargainDashboard.jsx";
+import ProductBuy from "./pages/ProductBuy/ProductBuy";
+import ProductBuyWrapper from "./pages/ProductBuy/ProductBuyWrapper";
 
 // Import your main CSS files
 import "./styles/variables.css";
@@ -109,94 +112,109 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Public Routes */}
-        <Route
-          path="/login"
-          element={
-            <Login
-              setUserRole={setUserRole}
-              setIsAuthenticated={setIsAuthenticated}
-            />
-          }
-        />
-        <Route path="/register" element={<Register />} />
+    <UserProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Public Routes */}
+          <Route
+            path="/login"
+            element={
+              <Login
+                setUserRole={setUserRole}
+                setIsAuthenticated={setIsAuthenticated}
+              />
+            }
+          />
+          <Route path="/register" element={<Register />} />
 
-        {/* Redirect root to dashboard if authenticated, otherwise to login */}
-        <Route
-          path="/"
-          element={
-            isAuthenticated ? (
-              <Navigate to="/dashboard" replace />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
+          {/* Redirect root to dashboard if authenticated, otherwise to login */}
+          <Route
+            path="/"
+            element={
+              isAuthenticated ? (
+                <Navigate to="/dashboard" replace />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
 
-        {/* Protected Routes */}
-        <Route
-          element={
-            <ProtectedRoutes
-              userRole={userRole}
-              isAuthenticated={isAuthenticated}
-            />
-          }
-        >
-          {userRole === "buyer" && (
-            <>
-              <Route
-                path="/dashboard"
-                element={<Dashboard userRole={userRole} />}
+          {/* Protected Routes */}
+          <Route
+            element={
+              <ProtectedRoutes
+                userRole={userRole}
+                isAuthenticated={isAuthenticated}
               />
-              <Route
-                path="/products"
-                element={<ProductListing userRole={userRole} />}
-              />
-              <Route path="/cart" element={<Cart userRole={userRole} />} />
-              <Route
-                path="/tracking"
-                element={<OrderTracking userRole={userRole} />}
-              />
-              <Route
-                path="/surplus"
-                element={<SurplusExchange userRole={userRole} />}
-              />
-              <Route
-                path="/khata"
-                element={<DigitalKhata userRole={userRole} />}
-              />
-              <Route
-                path="/profile"
-                element={
-                  <Profile userRole={userRole} onLogout={handleLogout} />
-                }
-              />
-            </>
-          )}
+            }
+          >
+            {userRole === "buyer" && (
+              <>
+                <Route
+                  path="/dashboard"
+                  element={<Dashboard userRole={userRole} />}
+                />
+                <Route
+                  path="/products"
+                  element={<ProductListing userRole={userRole} />}
+                />
+                <Route path="/cart" element={<Cart userRole={userRole} />} />
+                <Route
+                  path="/tracking"
+                  element={<OrderTracking userRole={userRole} />}
+                />
+                <Route
+                  path="/surplus"
+                  element={<SurplusExchange userRole={userRole} />}
+                />
+                <Route
+                  path="/khata"
+                  element={<DigitalKhata userRole={userRole} />}
+                />
+                <Route
+                  path="/profile"
+                  element={
+                    <Profile userRole={userRole} onLogout={handleLogout} />
+                  }
+                />
+                <Route
+                  path="/product-buy/:productId"
+                  element={<ProductBuyWrapper />}
+                />
+              </>
+            )}
 
-          {/* Seller Routes */}
-          {userRole === "seller" && (
-            <>
-              <Route
-                path="/dashboard"
-                element={<Dashboard userRole={userRole} />}
-              />
-              <Route path="/inventory" element={<Inventory />} />
-              <Route path="/update-inventory" element={<UpdateInventory />} />
-              <Route path="/orders" element={<OrdersPlaced />} />
-              <Route path="/deliveries" element={<Deliveries />} />
-              <Route path="/transactions" element={<IncomeTransactions />} />
-              <Route
-                path="/profile"
-                element={<SellerProfile onLogout={handleLogout} />}
-              />
-            </>
-          )}
-        </Route>
-      </Routes>
-    </BrowserRouter>
+            {/* Seller Routes */}
+            {userRole === "seller" && (
+              <>
+                <Route
+                  path="/dashboard"
+                  element={<Dashboard userRole={userRole} />}
+                />
+                <Route path="/inventory" element={<Inventory />} />
+                <Route path="/update-inventory" element={<UpdateInventory />} />
+                <Route path="/orders" element={<OrdersPlaced />} />
+                <Route path="/deliveries" element={<Deliveries />} />
+                <Route
+                  path="/products"
+                  element={<ProductListing userRole={userRole} />}
+                />
+                <Route path="/products/create" element={<ProductForm />} />
+                <Route
+                  path="/products/edit/:productId"
+                  element={<ProductForm />}
+                />
+                <Route path="/transactions" element={<IncomeTransactions />} />
+                <Route
+                  path="/profile"
+                  element={<SellerProfile onLogout={handleLogout} />}
+                />
+              </>
+            )}
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </UserProvider>
   );
 }
 

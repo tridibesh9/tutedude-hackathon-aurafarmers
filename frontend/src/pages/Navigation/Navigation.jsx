@@ -144,22 +144,28 @@ const Navigation = ({ userRole }) => {
       path: "/inventory",
       roles: ["seller"],
     },
-    // { id: 'tracking', icon: TrackIcon, label: 'Tracking', path: '/tracking', roles: ['buyer', 'seller'] },
+    {
+      id: "tracking",
+      icon: TrackIcon,
+      label: "My Orders",
+      path: "/tracking",
+      roles: ["buyer"],
+    },
+    {
+      id: "tracking",
+      icon: TrackIcon,
+      label: "Tracking",
+      path: "/orders",
+      roles: ["seller"],
+    },
     {
       id: "surplus",
       icon: ExchangeIcon,
-      label: "Exchange",
+      label: "Surplus",
       path: "/surplus",
       roles: ["buyer", "seller"],
     },
     // { id: 'khata', icon: LedgerIcon, label: 'Ledger', path: '/khata', roles: ['buyer', 'seller'] },
-    {
-      id: "profile",
-      icon: UserIcon,
-      label: "Profile",
-      path: "/profile",
-      roles: ["buyer", "seller"],
-    },
   ];
 
   // Filter items based on the current user's role

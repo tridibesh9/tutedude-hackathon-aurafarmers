@@ -1,5 +1,5 @@
-import React from "react";
-import { Bell, Search, Mic, ArrowLeft } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Bell, Search, Mic, ArrowLeft, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "./Header.css";
 
@@ -17,6 +17,26 @@ const Header = ({
   children,
 }) => {
   const navigate = useNavigate();
+  const [userInfo, setUserInfo] = useState(null);
+
+  // Fetch user info from /user/profile
+  useEffect(() => {
+    async function fetchUserInfo() {
+      try {
+        const token = localStorage.getItem("access_token");
+        const res = await fetch("/user/profile", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setUserInfo(data);
+        }
+      } catch (err) {
+        setUserInfo(null);
+      }
+    }
+    fetchUserInfo();
+  }, []);
 
   const handleBack = () => {
     if (onBackClick) {
@@ -24,6 +44,10 @@ const Header = ({
     } else {
       navigate(-1);
     }
+  };
+
+  const handleProfileClick = () => {
+    navigate("/profile");
   };
 
   return (
@@ -68,6 +92,21 @@ const Header = ({
                 <span className="location-text">Rohtak, Haryana</span>
               </div>
             )}
+
+            {/* Profile Icon */}
+            <button
+              className="profile-button"
+              onClick={handleProfileClick}
+              title={userInfo?.name || "Profile"}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                marginLeft: "8px",
+              }}
+            >
+              <User size={22} />
+            </button>
 
             {rightContent}
           </div>

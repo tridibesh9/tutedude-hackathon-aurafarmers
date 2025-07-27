@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   Star,
   MapPin,
@@ -9,11 +9,23 @@ import {
   Bot,
   Plus,
 } from "lucide-react";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { productAPI, apiHelpers } from "../../utils/api.js";
 import Header from "../../components/Header/Header";
+import { UserContext } from "../../contexts/UserContext";
 import "./ProductListing.css";
 
-const ProductListing = ({ category, userRole }) => {
+const ProductListing = ({ category: categoryProp, userRole }) => {
+  const { userId } = useContext(UserContext);
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+
+  // Get category from either prop, state, or query params
+  const categoryFromState = location.state?.category;
+  const categoryFromQuery = searchParams.get("category");
+  const effectiveCategory =
+    categoryProp || categoryFromState || categoryFromQuery || "";
+
   const [sortBy, setSortBy] = useState("best");
   const [showFilters, setShowFilters] = useState(false);
   const [products, setProducts] = useState([]);
@@ -22,11 +34,19 @@ const ProductListing = ({ category, userRole }) => {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [filters, setFilters] = useState({
-    category: category || "",
+    category: effectiveCategory,
     minPrice: "",
     maxPrice: "",
     sellerOnly: false,
   });
+
+  // Update filters when category changes from any source
+  useEffect(() => {
+    setFilters((prev) => ({
+      ...prev,
+      category: effectiveCategory,
+    }));
+  }, [effectiveCategory]);
 
   // Load products from API
   const loadProducts = async (pageNum = 0, isRefresh = false) => {
@@ -37,7 +57,7 @@ const ProductListing = ({ category, userRole }) => {
         category: filters.category,
         min_price: filters.minPrice ? parseFloat(filters.minPrice) : undefined,
         max_price: filters.maxPrice ? parseFloat(filters.maxPrice) : undefined,
-        seller_only: filters.sellerOnly,
+        seller_only: userRole === "seller",
       };
 
       const response = await productAPI.getAllProducts(params);
@@ -115,10 +135,14 @@ const ProductListing = ({ category, userRole }) => {
 
   // Apply filters
   const handleFilterChange = (filterName, value) => {
-    setFilters((prev) => ({
-      ...prev,
-      [filterName]: value,
-    }));
+    // Only allow updates to valid filter keys
+    const validKeys = ["category", "minPrice", "maxPrice", "sellerOnly"];
+    if (validKeys.includes(filterName)) {
+      setFilters((prev) => ({
+        ...prev,
+        [filterName]: value,
+      }));
+    }
   };
 
   // Get the display image for a product
@@ -463,7 +487,7 @@ const ProductListing = ({ category, userRole }) => {
 
                   {/* Action Buttons */}
                   <div className="action-buttons">
-                    {userRole === "buyer" || userRole === "both" ? (
+                    {userRole === "buyer" && (
                       <>
                         <button
                           onClick={() => handleAddToCart(product)}
@@ -484,7 +508,8 @@ const ProductListing = ({ category, userRole }) => {
                           Bargain
                         </button>
                       </>
-                    ) : (
+                    )}
+                    {userRole === "seller" && (
                       <button
                         onClick={() =>
                           (window.location.href = `/products/edit/${product.product_id}`)
