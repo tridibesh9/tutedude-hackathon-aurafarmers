@@ -169,16 +169,21 @@ export const bargainAPI = {
   },
 
   // Accept a bid
-  acceptBid: async (bargainId) => {
+  acceptBid: async (bargainId, bidId) => {
     const token = localStorage.getItem('token');
     
-    const response = await fetch(`http://localhost:8000/api/v1/bargain/${bargainId}/accept`, {
+    const response = await fetch(`http://localhost:8000/api/v1/bargain/${bargainId}/accept?bid_id=${bidId}`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Failed to accept bid');
+    }
 
     return response.json();
   },
