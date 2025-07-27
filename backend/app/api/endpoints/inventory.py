@@ -55,7 +55,7 @@ async def mark_inventory_surplus(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Inventory batch not found"
         )
-    inventory.is_surplus = True
+    # inventory.is_surplus = True
     await db.commit()
     await db.refresh(inventory)
     return inventory
@@ -85,7 +85,7 @@ async def update_surplus_discount(
             and_(
                 Inventory.inventory_id == inventory_id,
                 Inventory.user_id == current_user.user_id,
-                Inventory.is_surplus == True,
+                # Inventory.is_surplus == True,
             )
         )
     )
@@ -119,7 +119,7 @@ async def list_my_surplus_items(
             detail="Only sellers can view inventory",
         )
     query = select(Inventory).where(
-        and_(Inventory.user_id == current_user.user_id, Inventory.is_surplus == True)
+        # and_(Inventory.user_id == current_user.user_id, Inventory.is_surplus == True)
     )
     result = await db.execute(query)
     surplus_batches = result.scalars().all()

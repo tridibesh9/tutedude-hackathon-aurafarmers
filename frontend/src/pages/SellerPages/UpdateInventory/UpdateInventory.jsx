@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./UpdateInventory.css";
 import Header from "../../../components/Header/Header";
@@ -8,33 +8,52 @@ const UpdateInventory = () => {
   const navigate = useNavigate();
   const existingItem = location.state?.itemData;
 
+  // Add state for product list
+  const [products, setProducts] = useState([]);
   const [productData, setProductData] = useState({
-    productName: "",
-    category: "",
-    price: "",
+    product_id: "",
     quantity: "",
     unit: "kg",
     discountSingleUser: "",
     discountSubscriptionUser: "",
     discountMergedOrder: "",
     expiryValue: "",
-    expiryUnit: "days", // 'hours' or 'days'
+    expiryUnit: "days",
   });
 
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdate, setIsUpdate] = useState(false);
 
+  // Fetch products for dropdown
+  useEffect(() => {
+    async function fetchProducts() {
+      try {
+        const res = await fetch("/api/products/my-products", {
+          headers: {
+            "Content-Type": "application/json",
+            // Add any auth headers if needed
+            // "Authorization": `Bearer ${token}`
+          },
+        });
+        if (!res.ok) throw new Error("Failed to fetch products");
+        const data = await res.json();
+        setProducts(data);
+      } catch (error) {
+        console.error("Error fetching products:", error);
+        alert("Failed to load products");
+      }
+    }
+    fetchProducts();
+  }, []);
+
   useEffect(() => {
     if (existingItem) {
-      // Convert existing expiry date to hours/days from now
       let expiryValue = "";
       let expiryUnit = "days";
-
-      if (existingItem.expiry) {
-        const expiryDate = new Date(existingItem.expiry);
+      if (existingItem.expiry_date) {
+        const expiryDate = new Date(existingItem.expiry_date);
         const now = new Date();
         const diffInHours = Math.round((expiryDate - now) / (1000 * 60 * 60));
-
         if (diffInHours <= 48) {
           expiryValue = diffInHours;
           expiryUnit = "hours";
@@ -43,11 +62,8 @@ const UpdateInventory = () => {
           expiryUnit = "days";
         }
       }
-
       setProductData({
-        productName: existingItem.name,
-        category: existingItem.category,
-        price: existingItem.price,
+        product_id: existingItem.product_id,
         quantity: existingItem.quantity,
         unit: existingItem.unit,
         discountSingleUser: existingItem.discount?.solo_singletime || "",
@@ -79,22 +95,24 @@ const UpdateInventory = () => {
         productData.expiryUnit === "hours"
           ? parseInt(productData.expiryValue)
           : parseInt(productData.expiryValue) * 24;
-
       const expiryDate = new Date(now.getTime() + expiryHours * 60 * 60 * 1000);
 
       // Prepare data for API
       const apiData = {
-        ...productData,
-        expiry: expiryDate.toISOString(),
+        product_id: productData.product_id,
+        quantity: parseInt(productData.quantity),
+        unit: productData.unit,
+        discount: {
+          solo_singletime: parseFloat(productData.discountSingleUser) || 0,
+          subscription: parseFloat(productData.discountSubscriptionUser) || 0,
+          group: parseFloat(productData.discountMergedOrder) || 0,
+        },
+        expiry_date: expiryDate.toISOString(),
       };
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // In real implementation, use different endpoints for update vs create
       const url = isUpdate
-        ? `api/inventory/${existingItem.id}`
-        : "api/inventory/create";
+        ? `/api/inventory/update/${existingItem.inventory_id}`
+        : "/api/inventory/add";
       const method = isUpdate ? "PUT" : "POST";
 
       const response = await fetch(url, {
@@ -102,21 +120,23 @@ const UpdateInventory = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(productData),
+        body: JSON.stringify(apiData),
       });
 
       if (response.ok) {
-        const message = isUpdate
-          ? "Product updated successfully!"
-          : "Product added successfully!";
-        alert(message);
-
-        // Navigate back to inventory
+        alert(
+          isUpdate
+            ? "Inventory updated successfully!"
+            : "Inventory added successfully!"
+        );
         navigate("/inventory");
+      } else {
+        const err = await response.json();
+        alert(err.detail || "Failed to save inventory");
       }
     } catch (error) {
-      console.error("Error saving product:", error);
-      alert(`Failed to ${isUpdate ? "update" : "add"} product`);
+      console.error("Error saving inventory:", error);
+      alert(`Failed to ${isUpdate ? "update" : "add"} inventory`);
     } finally {
       setIsLoading(false);
     }
@@ -124,40 +144,73 @@ const UpdateInventory = () => {
 
   return (
     <div className="page-container">
-      <Header title="Update Inventory" subtitle="" showSearch />
+      <Header
+        title={isUpdate ? "Update Inventory" : "Add Inventory"}
+        subtitle=""
+        showSearch
+      />
       <div className="update-inventory">
         <form onSubmit={handleSubmit} className="inventory-form">
           <div className="form-group">
-            <label htmlFor="productName">Product Name</label>
-            <input
-              type="text"
-              id="productName"
-              name="productName"
-              value={productData.productName}
-              onChange={handleInputChange}
-              required
-            />
+            <label htmlFor="product_id">Product</label>
+            {isUpdate ? (
+              // Show readonly input for update mode
+              <input
+                type="text"
+                value={
+                  products.find((p) => p.product_id === productData.product_id)
+                    ?.name || "Loading..."
+                }
+                disabled
+                readOnly
+                className="readonly-product"
+              />
+            ) : (
+              // Show select for create mode
+              <select
+                id="product_id"
+                name="product_id"
+                value={productData.product_id || ""}
+                onChange={handleInputChange}
+                required
+                className="product-select"
+              >
+                <option value="">Select product</option>
+                {products && products.length > 0 ? (
+                  products.map((prod) => (
+                    <option key={prod.product_id} value={prod.product_id}>
+                      {prod.name} ({prod.category})
+                    </option>
+                  ))
+                ) : (
+                  <option value="" disabled>
+                    Loading products...
+                  </option>
+                )}
+              </select>
+            )}
           </div>
 
           <div className="form-group">
-            <label htmlFor="category">Category</label>
-            <input
-              type="text"
-              id="category"
-              name="category"
-              value={productData.category}
-              onChange={handleInputChange}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="price">Price</label>
+            <label htmlFor="quantity">Quantity</label>
             <input
               type="number"
-              id="price"
-              name="price"
-              value={productData.price}
+              id="quantity"
+              name="quantity"
+              value={productData.quantity}
+              onChange={handleInputChange}
+              required
+              min="1"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="unit">Unit</label>
+            <input
+              type="text"
+              id="unit"
+              name="unit"
+              value={productData.unit}
               onChange={handleInputChange}
               required
             />
@@ -172,6 +225,8 @@ const UpdateInventory = () => {
               value={productData.discountSingleUser}
               onChange={handleInputChange}
               required
+              min="0"
+              max="100"
             />
           </div>
 
@@ -186,12 +241,14 @@ const UpdateInventory = () => {
               value={productData.discountSubscriptionUser}
               onChange={handleInputChange}
               required
+              min="0"
+              max="100"
             />
           </div>
 
           <div className="form-group">
             <label htmlFor="discountMergedOrder">
-              Merged Order Discount (%)
+              Group Order Discount (%)
             </label>
             <input
               type="number"
@@ -200,6 +257,8 @@ const UpdateInventory = () => {
               value={productData.discountMergedOrder}
               onChange={handleInputChange}
               required
+              min="0"
+              max="100"
             />
           </div>
 
@@ -262,8 +321,8 @@ const UpdateInventory = () => {
             {isLoading
               ? "Saving..."
               : isUpdate
-              ? "Update Product"
-              : "Add Product"}
+              ? "Update Inventory"
+              : "Add Inventory"}
           </button>
         </form>
       </div>

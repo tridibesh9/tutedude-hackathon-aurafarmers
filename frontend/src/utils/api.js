@@ -234,13 +234,19 @@ export const inventoryAPI = {
   },
 
   // Get Product Pricing
-  async getProductPricing(productId, quantity, purchaseType = "solo_singletime") {
+  async getProductPricing(
+    productId,
+    quantity,
+    purchaseType = "solo_singletime"
+  ) {
     const queryParams = new URLSearchParams({
       quantity: quantity.toString(),
       purchase_type: purchaseType,
     });
 
-    const response = await api.get(`/inventory/pricing/${productId}?${queryParams}`);
+    const response = await api.get(
+      `/inventory/pricing/${productId}?${queryParams}`
+    );
     return response.data;
   },
 };
@@ -249,7 +255,7 @@ export const inventoryAPI = {
 export const orderAPI = {
   // Create Order (Buyer Only)
   async createOrder(orderData, orderItems, purchaseType = "solo_singletime") {
-    const response = await api.post("/order/create", {
+    const response = await api.post("/order/create/", {
       order_data: orderData,
       order_items: orderItems,
       purchase_type: purchaseType,
@@ -258,7 +264,11 @@ export const orderAPI = {
   },
 
   // Calculate Order Pricing (Buyer Only)
-  async calculatePricing(orderItems, sellerId, purchaseType = "solo_singletime") {
+  async calculatePricing(
+    orderItems,
+    sellerId,
+    purchaseType = "solo_singletime"
+  ) {
     const response = await api.post("/order/calculate-pricing", {
       order_items: orderItems,
       seller_id: sellerId,
@@ -298,8 +308,12 @@ export const orderAPI = {
   },
 
   // Group Order Functions
-  async createGroupOrder(orderData, orderItems, purchaseType = "solo_singletime") {
-    const response = await api.post("/order/create", {
+  async createGroupOrder(
+    orderData,
+    orderItems,
+    purchaseType = "solo_singletime"
+  ) {
+    const response = await api.post("/order/create/", {
       order_data: { ...orderData, order_type: "group" },
       order_items: orderItems,
       purchase_type: purchaseType,
@@ -318,7 +332,13 @@ export const orderAPI = {
 
   // Get Available Group Orders (Buyer Only)
   async getAvailableGroupOrders(params = {}) {
-    const { seller_id, product_category, max_distance_km, skip = 0, limit = 20 } = params;
+    const {
+      seller_id,
+      product_category,
+      max_distance_km,
+      skip = 0,
+      limit = 20,
+    } = params;
 
     const queryParams = new URLSearchParams({
       skip: skip.toString(),
@@ -326,8 +346,10 @@ export const orderAPI = {
     });
 
     if (seller_id) queryParams.append("seller_id", seller_id);
-    if (product_category) queryParams.append("product_category", product_category);
-    if (max_distance_km) queryParams.append("max_distance_km", max_distance_km.toString());
+    if (product_category)
+      queryParams.append("product_category", product_category);
+    if (max_distance_km)
+      queryParams.append("max_distance_km", max_distance_km.toString());
 
     const response = await api.get(`/order/group/available?${queryParams}`);
     return response.data;
@@ -341,7 +363,9 @@ export const orderAPI = {
 
   // Update Group Order Participant Status
   async updateParticipantStatus(participantId, newStatus) {
-    const response = await api.put(`/order/group/participant/${participantId}/status?new_status=${newStatus}`);
+    const response = await api.put(
+      `/order/group/participant/${participantId}/status?new_status=${newStatus}`
+    );
     return response.data;
   },
 };
@@ -466,19 +490,19 @@ export const apiHelpers = {
     if (error.response?.data?.detail) {
       // Handle Pydantic validation errors (array of error objects)
       if (Array.isArray(error.response.data.detail)) {
-        const errorMessages = error.response.data.detail.map(err => {
-          if (typeof err === 'string') return err;
-          if (err.msg) return `${err.loc?.join('.') || 'Field'}: ${err.msg}`;
+        const errorMessages = error.response.data.detail.map((err) => {
+          if (typeof err === "string") return err;
+          if (err.msg) return `${err.loc?.join(".") || "Field"}: ${err.msg}`;
           return JSON.stringify(err);
         });
-        return errorMessages.join('; ');
+        return errorMessages.join("; ");
       }
       // Handle simple string errors
-      if (typeof error.response.data.detail === 'string') {
+      if (typeof error.response.data.detail === "string") {
         return error.response.data.detail;
       }
       // Handle object errors
-      if (typeof error.response.data.detail === 'object') {
+      if (typeof error.response.data.detail === "object") {
         return JSON.stringify(error.response.data.detail);
       }
     }

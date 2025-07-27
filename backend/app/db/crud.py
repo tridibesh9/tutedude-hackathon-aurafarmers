@@ -199,7 +199,7 @@ async def mark_inventory_surplus(db: AsyncSession, inventory_id: str, seller_id:
     inventory = result.scalar_one_or_none()
     if not inventory:
         raise Exception("Inventory batch not found or not owned by seller")
-    inventory.is_surplus = True
+    # inventory.is_surplus = True
     await db.commit()
     await db.refresh(inventory)
     return inventory
@@ -212,7 +212,7 @@ async def update_surplus_discount(
         select(Inventory).where(
             Inventory.inventory_id == inventory_id,
             Inventory.user_id == seller_id,
-            Inventory.is_surplus,
+            # Inventory.is_surplus,
         )
     )
     inventory = result.scalar_one_or_none()
@@ -226,20 +226,21 @@ async def update_surplus_discount(
 
 async def get_my_surplus_items(db: AsyncSession, seller_id: str):
     result = await db.execute(
-        select(Inventory).where(Inventory.user_id == seller_id, Inventory.is_surplus)
+        # select(Inventory).where(Inventory.user_id == seller_id, Inventory.is_surplus)
     )
     return result.scalars().all()
 
 
 async def get_surplus_items(db: AsyncSession):
-    result = await db.execute(select(Inventory).where(Inventory.is_surplus))
+    # result = await db.execute(select(Inventory).where(Inventory.is_surplus))
+    result = []
     return result.scalars().all()
 
 
 async def buy_surplus_item(db: AsyncSession, inventory_id: str, buyer_id: str):
     result = await db.execute(
         select(Inventory).where(
-            Inventory.inventory_id == inventory_id, Inventory.is_surplus
+            # Inventory.inventory_id == inventory_id, Inventory.is_surplus
         )
     )
     inventory = result.scalar_one_or_none()
