@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import './Deliveries.css';
+import React, { useState, useEffect } from "react";
+import "./Deliveries.css";
+import Header from "../../../components/Header/Header";
 
 const Deliveries = () => {
   const [deliveries, setDeliveries] = useState([]);
@@ -16,9 +17,9 @@ const Deliveries = () => {
         status: "In Transit",
         items: [
           { name: "Organic Tomatoes", quantity: 2 },
-          { name: "Fresh Potatoes", quantity: 3 }
+          { name: "Fresh Potatoes", quantity: 3 },
         ],
-        deliveryPartner: "Express Delivery"
+        deliveryPartner: "Express Delivery",
       },
       // Add more dummy deliveries as needed
     ];
@@ -30,82 +31,92 @@ const Deliveries = () => {
     try {
       // Dummy API call
       await fetch(`api/deliveries/${deliveryId}/status`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ status: newStatus }),
       });
 
-      setDeliveries(prevDeliveries =>
-        prevDeliveries.map(delivery =>
-          delivery.id === deliveryId ? { ...delivery, status: newStatus } : delivery
+      setDeliveries((prevDeliveries) =>
+        prevDeliveries.map((delivery) =>
+          delivery.id === deliveryId
+            ? { ...delivery, status: newStatus }
+            : delivery
         )
       );
     } catch (error) {
-      console.error('Error updating delivery status:', error);
+      console.error("Error updating delivery status:", error);
     }
   };
 
   return (
-    <div className="deliveries">
-      <h2>Deliveries</h2>
-      <div className="deliveries-list">
-        {deliveries.map(delivery => (
-          <div key={delivery.id} className="delivery-card">
-            <div className="delivery-header">
-              <div>
-                <h3>Delivery #{delivery.id}</h3>
-                <p className="order-ref">Order: {delivery.orderId}</p>
-              </div>
-              <span className={`status ${delivery.status.toLowerCase().replace(' ', '-')}`}>
-                {delivery.status}
-              </span>
-            </div>
-
-            <div className="delivery-details">
-              <div className="detail-group">
-                <label>Customer</label>
-                <p>{delivery.customerName}</p>
-              </div>
-              <div className="detail-group">
-                <label>Delivery Address</label>
-                <p>{delivery.address}</p>
-              </div>
-              <div className="detail-group">
-                <label>Delivery Date</label>
-                <p>{delivery.deliveryDate}</p>
-              </div>
-              <div className="detail-group">
-                <label>Delivery Partner</label>
-                <p>{delivery.deliveryPartner}</p>
-              </div>
-            </div>
-
-            <div className="items-list">
-              <h4>Items</h4>
-              {delivery.items.map((item, index) => (
-                <div key={index} className="item">
-                  <span>{item.name}</span>
-                  <span>x{item.quantity}</span>
+    <div className="page-container">
+      <Header title="Deliveries" subtitle="" showSearch />
+      <div className="deliveries">
+        <div className="deliveries-list">
+          {deliveries.map((delivery) => (
+            <div key={delivery.id} className="delivery-card">
+              <div className="delivery-header">
+                <div>
+                  <h3>Delivery #{delivery.id}</h3>
+                  <p className="order-ref">Order: {delivery.orderId}</p>
                 </div>
-              ))}
-            </div>
+                <span
+                  className={`status ${delivery.status
+                    .toLowerCase()
+                    .replace(" ", "-")}`}
+                >
+                  {delivery.status}
+                </span>
+              </div>
 
-            <div className="delivery-actions">
-              <select
-                value={delivery.status}
-                onChange={(e) => handleStatusUpdate(delivery.id, e.target.value)}
-                className="status-select"
-              >
-                <option value="Pending">Pending</option>
-                <option value="In Transit">In Transit</option>
-                <option value="Delivered">Delivered</option>
-                <option value="Failed">Failed</option>
-              </select>
+              <div className="delivery-details">
+                <div className="detail-group">
+                  <label>Customer</label>
+                  <p>{delivery.customerName}</p>
+                </div>
+                <div className="detail-group">
+                  <label>Delivery Address</label>
+                  <p>{delivery.address}</p>
+                </div>
+                <div className="detail-group">
+                  <label>Delivery Date</label>
+                  <p>{delivery.deliveryDate}</p>
+                </div>
+                <div className="detail-group">
+                  <label>Delivery Partner</label>
+                  <p>{delivery.deliveryPartner}</p>
+                </div>
+              </div>
+
+              <div className="items-list">
+                <h4>Items</h4>
+                {delivery.items.map((item, index) => (
+                  <div key={index} className="item">
+                    <span>{item.name}</span>
+                    <span>x{item.quantity}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="delivery-actions">
+                <select
+                  value={delivery.status}
+                  onChange={(e) =>
+                    handleStatusUpdate(delivery.id, e.target.value)
+                  }
+                  className="status-select"
+                >
+                  <option value="Pending">Pending</option>
+                  <option value="In Transit">In Transit</option>
+                  <option value="Delivered">Delivered</option>
+                  <option value="Failed">Failed</option>
+                </select>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );

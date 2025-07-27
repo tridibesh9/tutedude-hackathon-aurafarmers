@@ -161,15 +161,11 @@ const Cart = ({ userRole }) => {
   return (
     <div className="page-container">
       {/* Header */}
-      {userRole === "buyer" ? (
-        <Header
-          title="Cart and Inventory"
-          subtitle="Check your cart and inventory"
-          showSearch
-        />
-      ) : (
-        <Header title="Inventory" subtitle="Check your inventory" showSearch />
-      )}
+      <Header
+        title="Cart and Inventory"
+        subtitle="Check your cart and inventory"
+        showSearch
+      />
 
       {/* Error Message */}
       {error && (
