@@ -20,6 +20,7 @@ const CreateBargainModal = ({ userRole, onClose, onBargainCreated }) => {
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
+    console.log('CreateBargainModal mounted, fetching products...');
     fetchProducts();
   }, []);
 
@@ -31,25 +32,70 @@ const CreateBargainModal = ({ userRole, onClose, onBargainCreated }) => {
 
   const fetchProducts = async () => {
     try {
+      setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/v1/product/', {
+      
+      if (!token) {
+        console.error('No authentication token found');
+        setErrors({ submit: 'Please log in to create bargains' });
+        return;
+      }
+      
+      console.log('Fetching products from API...');
+      
+      // Fetch all products (not just seller's products for bargain creation)
+      const response = await fetch('http://localhost:8000/api/v1/product/?limit=100&seller_only=false', {
+        method: 'GET',
+        mode: 'cors',
+        credentials: 'include',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         }
       });
       
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      
       if (response.ok) {
         const data = await response.json();
-        // API returns array of products directly
-        setProducts(Array.isArray(data) ? data : []);
-        console.log('Products fetched:', data);
+        console.log('Raw API response:', data);
+        
+        if (Array.isArray(data) && data.length > 0) {
+          setProducts(data);
+          console.log('Products loaded successfully:', data.length, 'products');
+          console.log('First product sample:', data[0]);
+        } else {
+          console.log('No products found or empty response');
+          setProducts([]);
+          setErrors({ submit: 'No products available for bargaining' });
+        }
       } else {
-        console.error('Failed to fetch products:', response.status, response.statusText);
+        console.error('API Error:', response.status, response.statusText);
+        const errorText = await response.text();
+        console.error('Error response body:', errorText);
+        
+        if (response.status === 401) {
+          setErrors({ submit: 'Authentication failed. Please log in again.' });
+        } else if (response.status === 403) {
+          setErrors({ submit: 'Access denied. Please check your permissions.' });
+        } else {
+          setErrors({ submit: `Failed to fetch products: ${response.status} ${response.statusText}` });
+        }
         setProducts([]);
       }
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error('Network error fetching products:', error);
+      
+      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        setErrors({ submit: 'Connection failed. Please check if the server is running and CORS is configured.' });
+      } else {
+        setErrors({ submit: 'Network error. Please try again.' });
+      }
       setProducts([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -247,19 +293,43 @@ const CreateBargainModal = ({ userRole, onClose, onBargainCreated }) => {
           {/* Product Selection */}
           <div className="form-group">
             <label>Product *</label>
-            <select
-              value={formData.product_id}
-              onChange={(e) => handleProductSelect(e.target.value)}
-              className={errors.product_id ? 'error' : ''}
-            >
-              <option value="">Select a product</option>
-              {products.map(product => (
-                <option key={product.product_id} value={product.product_id}>
-                  {product.name} - {product.category}
-                </option>
-              ))}
-            </select>
+            {loading ? (
+              <div style={{ padding: '10px', backgroundColor: '#f8f9fa', border: '1px solid #dee2e6', borderRadius: '4px' }}>
+                Loading products...
+              </div>
+            ) : products.length === 0 ? (
+              <div style={{ padding: '10px', backgroundColor: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '4px', color: '#856404' }}>
+                No products available. {errors.submit && `Error: ${errors.submit}`}
+              </div>
+            ) : (
+              <select
+                value={formData.product_id}
+                onChange={(e) => handleProductSelect(e.target.value)}
+                className={errors.product_id ? 'error' : ''}
+              >
+                <option value="">Select a product ({products.length} available)</option>
+                {products.map(product => (
+                  <option key={product.product_id} value={product.product_id}>
+                    {product.name} - {product.category} (₹{product.price})
+                  </option>
+                ))}
+              </select>
+            )}
             {errors.product_id && <span className="error-text">{errors.product_id}</span>}
+            
+            {/* Debug info - remove in production */}
+            {process.env.NODE_ENV === 'development' && (
+              <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
+                Debug: {products.length} products loaded, Loading: {loading.toString()}
+                <button 
+                  type="button" 
+                  onClick={fetchProducts}
+                  style={{ marginLeft: '10px', padding: '2px 8px', fontSize: '10px' }}
+                >
+                  Retry Fetch
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="form-row">

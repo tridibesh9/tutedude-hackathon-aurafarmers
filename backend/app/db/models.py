@@ -211,7 +211,7 @@ class Inventory(Base):
     expiry_date = Column(
         Date, nullable=True
     )  # Optional expiry date for the inventory item
-    is_surplus = Column(Boolean, default=False)  # Marks inventory as surplus
+    # is_surplus = Column(Boolean, default=False)  # Marks inventory as surplus
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -447,14 +447,14 @@ class InventoryCreate(BaseModel):
     quantity: int = Field(..., ge=0)
     discount: DiscountStructure = Field(default_factory=DiscountStructure)
     expiry_date: Optional[date] = None
-    is_surplus: Optional[bool] = False
+    # is_surplus: Optional[bool] = False
 
 
 class InventoryUpdate(BaseModel):
     quantity: Optional[int] = Field(None, ge=0)
     discount: Optional[DiscountStructure] = None
     expiry_date: Optional[date] = None
-    is_surplus: Optional[bool] = None
+    # is_surplus: Optional[bool] = None
 
 
 class InventoryResponse(BaseModel):
@@ -464,7 +464,7 @@ class InventoryResponse(BaseModel):
     quantity: int
     discount: DiscountStructure
     expiry_date: Optional[date]
-    is_surplus: bool
+    # is_surplus: bool
     created_at: datetime
     updated_at: Optional[datetime]
 

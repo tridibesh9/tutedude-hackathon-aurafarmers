@@ -507,12 +507,13 @@ async def place_bid_in_room(
 @router.post("/{room_id}/accept", response_model=dict)
 async def accept_bargain(
     room_id: str,
-    bid_id: str,
+    bid_id: str = Query(..., description="ID of the bid to accept"),
     db: AsyncSession = Depends(get_db_session),
     current_user: BaseUser = Depends(get_current_user),
 ):
     """
     Accept a specific bid and close the bargaining room.
+    This will also create an order automatically.
     """
     # Get bargain room
     room_result = await db.execute(
@@ -556,31 +557,96 @@ async def accept_bargain(
             status_code=status.HTTP_404_NOT_FOUND, detail="Bid not found"
         )
 
-    # Close the room
-    room.status = "accepted"
-    await db.commit()
+    # Get product details for order creation
+    product_result = await db.execute(
+        select(Product).where(Product.product_id == room.product_id)
+    )
+    product = product_result.scalar_one()
 
-    # Send real-time update
-    await manager.send_to_room(
-        room_id,
-        {
-            "type": "bargain_accepted",
+    # Determine buyer and seller for the order
+    if room.room_type == "public":
+        # For public bargains: room.buyer_id is buyer, bid.user_id (seller) is seller
+        order_buyer_id = room.buyer_id
+        order_seller_id = product.seller_id  # Use product's seller
+    else:
+        # For private bargains: room has both buyer and seller
+        order_buyer_id = room.buyer_id
+        order_seller_id = room.seller_id
+
+    try:
+        # Import Order and OrderItem models
+        from app.db.models import Order, OrderItem
+        
+        # Create the order automatically
+        order = Order(
+            buyer_id=order_buyer_id,
+            seller_id=order_seller_id,
+            order_type="solo",  # Bargain orders are typically solo orders
+            total_price=bid.bid_price * bid.quantity,
+            order_status="Confirmed",  # Start as confirmed since bargain was accepted
+            estimated_delivery_date=None,  # Can be updated later
+        )
+        
+        db.add(order)
+        await db.flush()  # Get order_id
+        
+        # Create order item
+        order_item = OrderItem(
+            order_id=order.order_id,
+            product_id=room.product_id,
+            quantity=bid.quantity,
+            price_per_unit=bid.bid_price,
+        )
+        
+        db.add(order_item)
+        
+        # Close the bargain room
+        room.status = "accepted"
+        
+        # Commit all changes
+        await db.commit()
+        await db.refresh(order)
+        
+        # Send real-time update
+        await manager.send_to_room(
+            room_id,
+            {
+                "type": "bargain_accepted",
+                "accepted_bid_id": str(bid.bid_id),
+                "final_price": float(bid.bid_price),
+                "quantity": bid.quantity,
+                "order_created": {
+                    "order_id": str(order.order_id),
+                    "total_price": float(order.total_price),
+                    "status": order.order_status,
+                }
+            },
+        )
+
+        return {
+            "message": "Bargain accepted successfully and order created",
+            "room_id": room_id,
             "accepted_bid_id": str(bid.bid_id),
             "final_price": float(bid.bid_price),
             "quantity": bid.quantity,
-        },
-    )
-
-    return {
-        "message": "Bargain accepted successfully",
-        "room_id": room_id,
-        "accepted_bid_id": str(bid.bid_id),
-        "final_price": float(bid.bid_price),
-        "quantity": bid.quantity,
-    }
-
-
-
+            "order_created": {
+                "order_id": str(order.order_id),
+                "buyer_id": str(order.buyer_id),
+                "seller_id": str(order.seller_id),
+                "total_price": float(order.total_price),
+                "order_status": order.order_status,
+                "order_date": order.order_date.isoformat(),
+            }
+        }
+        
+    except Exception as e:
+        # If order creation fails, rollback the bargain acceptance
+        await db.rollback()
+        print(f"Error creating order from bargain: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create order from accepted bargain"
+        )
 
 @router.get("/{room_id}", response_model=BargainRoomWithDetailsResponse)
 async def get_bargain_room_details(

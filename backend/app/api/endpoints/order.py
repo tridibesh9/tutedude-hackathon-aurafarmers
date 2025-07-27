@@ -978,16 +978,59 @@ async def get_all_orders(
             for item in order_items
         ]
 
+        # Get group buyers info if it's a group order
+        group_buyers_info = None
+        group_buyer_uuids = None
+        
+        if order.order_type == "group":
+            # Get group participants for group orders
+            participants_result = await db.execute(
+                select(GroupOrderParticipant, Buyer, BaseUser)
+                .join(Buyer, GroupOrderParticipant.buyer_id == Buyer.user_id)
+                .join(BaseUser, Buyer.user_id == BaseUser.user_id)
+                .where(GroupOrderParticipant.order_id == order.order_id)
+            )
+
+            participants_data = participants_result.all()
+            group_buyers_info = []
+
+            for participant_orm, buyer_orm, user_orm in participants_data:
+                group_buyers_info.append(
+                    {
+                        "buyer_id": str(participant_orm.buyer_id),
+                        "email": user_orm.email,
+                        "mobile_number": user_orm.mobile_number,
+                        "quantity_share": participant_orm.quantity_share,
+                        "price_share": float(participant_orm.price_share),
+                        "status": participant_orm.status,
+                        "joined_at": participant_orm.joined_at.isoformat(),
+                        "shipping_address": buyer_orm.shipping_address,
+                        "shipping_pincode": buyer_orm.shipping_pincode,
+                    }
+                )
+
+            # Convert group_buyer_ids to UUID list if they exist
+            if order.group_buyer_ids:
+                try:
+                    group_buyer_uuids = [
+                        uuid.UUID(buyer_id) for buyer_id in order.group_buyer_ids
+                    ]
+                except ValueError:
+                    group_buyer_uuids = None
+
         orders_with_items.append(
             OrderWithItemsResponse(
                 order_id=order.order_id,
                 buyer_id=order.buyer_id,
                 seller_id=order.seller_id,
+                group_buyer_ids=group_buyer_uuids,  # Add this field
+                order_type=order.order_type,  # Add this required field
                 total_price=order.total_price,
                 order_status=order.order_status,
                 estimated_delivery_date=order.estimated_delivery_date,
                 order_date=order.order_date,
                 order_items=order_items_response,
+                group_buyers_info=group_buyers_info,  # Add this field
             )
         )
 

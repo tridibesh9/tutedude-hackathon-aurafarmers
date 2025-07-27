@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { bargainAPI } from '../../utils/bargainUtils';
 import './BargainRoom.css';
 
 const BargainRoom = ({ bargain, userRole, onBack }) => {
@@ -188,28 +189,11 @@ const BargainRoom = ({ bargain, userRole, onBack }) => {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/v1/bargain/${bargain.id}/accept`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          bid_id: bidId
-        })
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        alert(`Bargain accepted! ${result.message}`);
-      } else {
-        const error = await response.json();
-        alert(`Failed to accept bid: ${error.detail || 'Unknown error'}`);
-      }
+      const result = await bargainAPI.acceptBid(bargain.id, bidId);
+      alert(`Bargain accepted! ${result.message}`);
     } catch (error) {
       console.error('Error accepting bid:', error);
-      alert('Failed to accept bid. Please try again.');
+      alert(`Failed to accept bid: ${error.message}`);
     }
   };
 
