@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Bargaining Demo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            text-align: center;
+            color: #333;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .connection-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .connection-form input {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .connection-form button {
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .connection-form button:hover {
+            background: #45a049;
+        }
+        
+        .connection-form button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.connecting {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .chat-container {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #fafafa;
+        }
+        
+        .message {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 5px;
+        }
+        
+        .message.bid {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+        }
+        
+        .message.chat {
+            background: #f3e5f5;
+            border-left: 4px solid #9c27b0;
+        }
+        
+        .message.system {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+        }
+        
+        .message.success {
+            background: #e8f5e8;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .message.error {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+        }
+        
+        .message-time {
+            font-size: 0.8em;
+            color: #666;
+            float: right;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .input-group input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .input-group button {
+            padding: 10px 15px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .input-group button:hover {
+            background: #1976D2;
+        }
+        
+        .input-group button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .actions button {
+            padding: 8px 15px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        
+        .actions button:hover {
+            background: #5a6268;
+        }
+        
+        .typing-indicator {
+            font-style: italic;
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏪 Live Bargaining WebSocket Demo</h1>
+            <p>Real-time bidding and chat for e-commerce bargaining</p>
+        </div>
+        
+        <div class="connection-form">
+            <input type="text" id="roomId" placeholder="Room ID (e.g., 550e8400-e29b-41d4-a716-446655440000)" />
+            <input type="text" id="jwtToken" placeholder="JWT Token (get from login API)" />
+            <button id="connectBtn">Connect</button>
+            <button id="disconnectBtn" disabled>Disconnect</button>
+        </div>
+        
+        <div id="status" class="status disconnected">
+            ❌ Disconnected - Enter room ID and JWT token to connect
+        </div>
+        
+        <div class="actions">
+            <button id="pingBtn" disabled>Send Ping</button>
+            <button id="activityBtn" disabled>Get Recent Activity</button>
+            <button id="typingBtn" disabled>Send Typing</button>
+        </div>
+        
+        <div class="chat-container" id="chatContainer">
+            <div class="message system">
+                <strong>System:</strong> WebSocket demo loaded. Connect to start bargaining!
+                <span class="message-time">Ready</span>
+            </div>
+        </div>
+        
+        <div class="typing-indicator" id="typingIndicator" style="display: none;">
+            Someone is typing...
+        </div>
+        
+        <div class="input-group">
+            <input type="text" id="messageInput" placeholder="Type a message..." disabled />
+            <button id="sendBtn" disabled>Send Message</button>
+        </div>
+        
+        <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px; font-size: 0.9em;">
+            <strong>💡 How to use:</strong>
+            <ol>
+                <li>Get your JWT token from the login API</li>
+                <li>Enter a bargaining room ID (create one via the bargain API first)</li>
+                <li>Click "Connect" to join the room</li>
+                <li>Send messages and see real-time updates</li>
+                <li>Watch for new bids and bargaining activity</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        let websocket = null;
+        let connected = false;
+        let authenticated = false;
+        
+        const elements = {
+            roomId: document.getElementById('roomId'),
+            jwtToken: document.getElementById('jwtToken'),
+            connectBtn: document.getElementById('connectBtn'),
+            disconnectBtn: document.getElementById('disconnectBtn'),
+            status: document.getElementById('status'),
+            chatContainer: document.getElementById('chatContainer'),
+            messageInput: document.getElementById('messageInput'),
+            sendBtn: document.getElementById('sendBtn'),
+            pingBtn: document.getElementById('pingBtn'),
+            activityBtn: document.getElementById('activityBtn'),
+            typingBtn: document.getElementById('typingBtn'),
+            typingIndicator: document.getElementById('typingIndicator')
+        };
+        
+        function updateStatus(message, type) {
+            elements.status.textContent = message;
+            elements.status.className = `status ${type}`;
+        }
+        
+        function addMessage(content, type = 'system') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.innerHTML = `
+                ${content}
+                <span class="message-time">${new Date().toLocaleTimeString()}</span>
+            `;
+            elements.chatContainer.appendChild(messageDiv);
+            elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+        }
+        
+        function connect() {
+            const roomId = elements.roomId.value.trim();
+            const token = elements.jwtToken.value.trim();
+            
+            if (!roomId || !token) {
+                alert('Please enter both Room ID and JWT Token');
+                return;
+            }
+            
+            updateStatus('🔄 Connecting...', 'connecting');
+            
+            // Use query parameter method for authentication
+            const wsUrl = `ws://localhost:8000/api/v1/bargain/${roomId}/ws?token=${token}`;
+            
+            websocket = new WebSocket(wsUrl);
+            
+            websocket.onopen = function() {
+                connected = true;
+                addMessage('<strong>✅ WebSocket Connected</strong>', 'success');
+            };
+            
+            websocket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                handleMessage(data);
+            };
+            
+            websocket.onerror = function(error) {
+                addMessage(`<strong>❌ WebSocket Error:</strong> ${error}`, 'error');
+                updateStatus('❌ Connection Error', 'disconnected');
+            };
+            
+            websocket.onclose = function() {
+                connected = false;
+                authenticated = false;
+                updateConnectionUI();
+                addMessage('<strong>🔌 WebSocket Disconnected</strong>', 'system');
+                updateStatus('❌ Disconnected', 'disconnected');
+            };
+        }
+        
+        function disconnect() {
+            if (websocket) {
+                websocket.close();
+            }
+        }
+        
+        function handleMessage(data) {
+            const type = data.type;
+            
+            switch(type) {
+                case 'auth_success':
+                    authenticated = true;
+                    updateConnectionUI();
+                    updateStatus('✅ Connected & Authenticated', 'connected');
+                    addMessage(`<strong>🔐 Authenticated as User:</strong> ${data.user_id}`, 'success');
+                    break;
+                    
+                case 'room_info':
+                    const room = data.room;
+                    addMessage(`
+                        <strong>🏠 Room Information:</strong><br>
+                        Type: ${room.room_type}<br>
+                        Status: ${room.status}<br>
+                        Current Bid: ₹${room.current_bid_price}<br>
+                        Quantity: ${room.quantity}
+                    `, 'system');
+                    break;
+                    
+                case 'new_bid':
+                    const bid = data.bid;
+                    addMessage(`
+                        <strong>💰 NEW BID from ${bid.user_type.toUpperCase()}:</strong><br>
+                        Price: ₹${bid.bid_price}<br>
+                        Quantity: ${bid.quantity}<br>
+                        ${bid.message ? `Message: ${bid.message}<br>` : ''}
+                        ${bid.is_counter_offer ? '<em>Counter Offer</em>' : ''}
+                    `, 'bid');
+                    break;
+                    
+                case 'new_message':
+                    const msg = data.message;
+                    addMessage(`
+                        <strong>💬 ${msg.user_id}:</strong> ${msg.content}
+                    `, 'chat');
+                    break;
+                    
+                case 'bargain_accepted':
+                    addMessage(`
+                        <strong>🎉 BARGAIN ACCEPTED!</strong><br>
+                        Final Price: ₹${data.final_price}<br>
+                        Quantity: ${data.quantity}<br>
+                        Bid ID: ${data.accepted_bid_id}
+                    `, 'success');
+                    break;
+                    
+                case 'user_joined':
+                    addMessage(`<strong>👋 User ${data.user_id} joined the room</strong>`, 'system');
+                    break;
+                    
+                case 'user_left':
+                    addMessage(`<strong>👋 User ${data.user_id} left the room</strong>`, 'system');
+                    break;
+                    
+                case 'typing':
+                    if (data.is_typing) {
+                        elements.typingIndicator.textContent = `${data.user_id} is typing...`;
+                        elements.typingIndicator.style.display = 'block';
+                        setTimeout(() => {
+                            elements.typingIndicator.style.display = 'none';
+                        }, 3000);
+                    }
+                    break;
+                    
+                case 'recent_activity':
+                    let activityHtml = '<strong>📋 Recent Activity:</strong><br>';
+                    
+                    if (data.bids && data.bids.length > 0) {
+                        activityHtml += '<strong>Recent Bids:</strong><br>';
+                        data.bids.forEach(bid => {
+                            activityHtml += `• ${bid.user_type}: ₹${bid.bid_price} (Qty: ${bid.quantity})<br>`;
+                        });
+                    }
+                    
+                    if (data.messages && data.messages.length > 0) {
+                        activityHtml += '<strong>Recent Messages:</strong><br>';
+                        data.messages.forEach(msg => {
+                            activityHtml += `• ${msg.user_id}: ${msg.content.substring(0, 50)}...<br>`;
+                        });
+                    }
+                    
+                    addMessage(activityHtml, 'system');
+                    break;
+                    
+                case 'pong':
+                    addMessage('<strong>🏓 Pong received</strong>', 'system');
+                    break;
+                    
+                case 'error':
+                    addMessage(`<strong>❌ Error:</strong> ${data.message}`, 'error');
+                    break;
+                    
+                default:
+                    addMessage(`<strong>❓ Unknown message:</strong> ${JSON.stringify(data)}`, 'system');
+            }
+        }
+        
+        function sendMessage() {
+            const message = elements.messageInput.value.trim();
+            if (message && authenticated) {
+                websocket.send(JSON.stringify({
+                    type: 'chat_message',
+                    content: message
+                }));
+                elements.messageInput.value = '';
+                addMessage(`<strong>You:</strong> ${message}`, 'chat');
+            }
+        }
+        
+        function sendPing() {
+            if (authenticated) {
+                websocket.send(JSON.stringify({type: 'ping'}));
+                addMessage('<strong>🏓 Ping sent</strong>', 'system');
+            }
+        }
+        
+        function getRecentActivity() {
+            if (authenticated) {
+                websocket.send(JSON.stringify({type: 'get_recent_activity'}));
+            }
+        }
+        
+        function sendTyping() {
+            if (authenticated) {
+                websocket.send(JSON.stringify({type: 'typing', is_typing: true}));
+                setTimeout(() => {
+                    websocket.send(JSON.stringify({type: 'typing', is_typing: false}));
+                }, 2000);
+                addMessage('<strong>✏️ Typing indicator sent</strong>', 'system');
+            }
+        }
+        
+        function updateConnectionUI() {
+            const isConnected = connected && authenticated;
+            
+            elements.connectBtn.disabled = connected;
+            elements.disconnectBtn.disabled = !connected;
+            elements.messageInput.disabled = !isConnected;
+            elements.sendBtn.disabled = !isConnected;
+            elements.pingBtn.disabled = !isConnected;
+            elements.activityBtn.disabled = !isConnected;
+            elements.typingBtn.disabled = !isConnected;
+        }
+        
+        // Event listeners
+        elements.connectBtn.addEventListener('click', connect);
+        elements.disconnectBtn.addEventListener('click', disconnect);
+        elements.sendBtn.addEventListener('click', sendMessage);
+        elements.pingBtn.addEventListener('click', sendPing);
+        elements.activityBtn.addEventListener('click', getRecentActivity);
+        elements.typingBtn.addEventListener('click', sendTyping);
+        
+        elements.messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        // Initial UI state
+        updateConnectionUI();
+    </script>
+</body>
+</html>

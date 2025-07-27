@@ -1,0 +1,480 @@
+.bargain-room {
+  min-height: 100vh;
+  background: #f8f9fa;
+  padding: 20px;
+}
+
+.room-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  background: white;
+  padding: 20px 30px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.back-btn {
+  background: #ecf0f1;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  color: #2c3e50;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+  background: #d5dbdb;
+  transform: translateX(-2px);
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.status-indicator.connected {
+  color: #27ae60;
+}
+
+.status-indicator.disconnected {
+  color: #e74c3c;
+}
+
+.active-users-count {
+  background: #3498db;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.room-content {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 30px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.left-panel,
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+/* Product Section */
+.product-section {
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.product-section h2 {
+  margin: 0 0 15px 0;
+  color: #2c3e50;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.product-meta {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.product-meta span {
+  background: #ecf0f1;
+  color: #2c3e50;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.category {
+  background: #e8f5e8 !important;
+  color: #27ae60 !important;
+}
+
+.quantity {
+  background: #e3f2fd !important;
+  color: #1976d2 !important;
+}
+
+.location {
+  background: #fff3e0 !important;
+  color: #f57c00 !important;
+}
+
+.product-description {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 2px solid #f1f3f5;
+}
+
+.product-description h4 {
+  margin: 0 0 10px 0;
+  color: #2c3e50;
+  font-size: 1.1rem;
+}
+
+.product-description p {
+  margin: 0;
+  color: #7f8c8d;
+  line-height: 1.6;
+}
+
+/* Current Bid Section */
+.current-bid-section {
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.bid-display {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.bid-display h3 {
+  margin: 0 0 10px 0;
+  color: #7f8c8d;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.price-amount {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #27ae60;
+  margin-bottom: 5px;
+}
+
+.starting-price {
+  color: #95a5a6;
+  font-size: 1rem;
+  text-decoration: line-through;
+}
+
+.bid-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+}
+
+.bid-info .label {
+  font-weight: 600;
+  color: #7f8c8d;
+  margin-right: 10px;
+}
+
+.time {
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.time.expired {
+  color: #e74c3c;
+}
+
+.winner {
+  font-weight: 700;
+  color: #27ae60;
+}
+
+/* Bidding Section */
+.bidding-section {
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.bidding-section h4 {
+  margin: 0 0 20px 0;
+  color: #2c3e50;
+  font-size: 1.3rem;
+}
+
+.bid-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.bid-input-group {
+  position: relative;
+}
+
+.bid-amount-input {
+  width: 100%;
+  padding: 15px 50px 15px 20px;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  box-sizing: border-box;
+}
+
+.bid-amount-input:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.currency {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #7f8c8d;
+}
+
+.bid-message-input {
+  width: 100%;
+  padding: 15px 20px;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.bid-message-input:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.place-bid-btn {
+  background: linear-gradient(135deg, #27ae60, #2ecc71);
+  color: white;
+  border: none;
+  padding: 18px 30px;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
+}
+
+.place-bid-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(46, 204, 113, 0.4);
+}
+
+.place-bid-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Accept Section */
+.accept-section {
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.accept-bid-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #e67e22, #f39c12);
+  color: white;
+  border: none;
+  padding: 18px 30px;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+}
+
+.accept-bid-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(243, 156, 18, 0.4);
+}
+
+.accept-bid-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Status Messages */
+.status-message {
+  background: white;
+  padding: 20px 30px;
+  border-radius: 12px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.status-message.expired {
+  background: #fdf2f2;
+  color: #721c24;
+  border: 2px solid #f8d7da;
+}
+
+.status-message.completed {
+  background: #e8f5e8;
+  color: #155724;
+  border: 2px solid #c3e6cb;
+}
+
+.status-message.cancelled {
+  background: #f8f9fa;
+  color: #6c757d;
+  border: 2px solid #dee2e6;
+}
+
+.error-message {
+  background: #fdf2f2;
+  color: #721c24;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid #f8d7da;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+/* Right Panel */
+.active-users-section {
+  background: white;
+  padding: 25px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.active-users-section h4 {
+  margin: 0 0 15px 0;
+  color: #2c3e50;
+  font-size: 1.2rem;
+}
+
+.users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.user-avatar {
+  width: 35px;
+  height: 35px;
+  background: #3498db;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.user-name {
+  flex: 1;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.user-role {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.user-role.buyer {
+  background: #e8f5e8;
+  color: #27ae60;
+}
+
+.user-role.seller {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+@media (max-width: 1024px) {
+  .room-content {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .right-panel {
+    order: -1;
+  }
+}
+
+@media (max-width: 768px) {
+  .bargain-room {
+    padding: 10px;
+  }
+
+  .room-header {
+    padding: 15px 20px;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .connection-status {
+    justify-content: center;
+  }
+
+  .product-section,
+  .current-bid-section,
+  .bidding-section,
+  .accept-section,
+  .active-users-section {
+    padding: 20px;
+  }
+
+  .product-section h2 {
+    font-size: 1.5rem;
+  }
+
+  .price-amount {
+    font-size: 2.5rem;
+  }
+
+  .bid-info {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+}

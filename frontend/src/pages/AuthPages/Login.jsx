@@ -1,19 +1,57 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { authAPI, apiHelpers } from '../../utils/api.js';
 import './AuthPages.css';
-const Login = () => {
-    const navigate = useNavigate();
+
+const Login = ({ setUserRole, setIsAuthenticated }) => {
+  const navigate = useNavigate();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleLogin = (e) => {
+  // Check if user is already logged in
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      // Verify token is still valid
+      authAPI.verifyToken()
+        .then(() => {
+          navigate('/dashboard');
+        })
+        .catch(() => {
+          // Token invalid, remove it
+          localStorage.removeItem('token');
+          localStorage.removeItem('userType');
+        });
+    }
+  }, [navigate]);
+
+  const handleLogin = async (e) => {
     e.preventDefault();
-    // In a real app, you would handle the login logic here.
-    console.log('Login attempt with:', { phoneNumber, email, password });
-    alert('Login functionality is for demonstration.');
-    navigate('/dashboard');
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await authAPI.login(email, password);
+      
+      // Store token and user type
+      localStorage.setItem('token', response.access_token);
+      localStorage.setItem('userType', response.user_type);
+      
+      // Update app state
+      if (setUserRole) setUserRole(response.user_type);
+      if (setIsAuthenticated) setIsAuthenticated(true);
+      
+      // Navigate to dashboard
+      navigate('/dashboard');
+    } catch (error) {
+      setError(apiHelpers.handleError(error));
+    } finally {
+      setLoading(false);
+    }
   };
     const navigateToRegister = () => {
     navigate('/register');
@@ -31,8 +69,22 @@ const Login = () => {
         </div>
 
         <form onSubmit={handleLogin} className="auth-form">
+          {error && (
+            <div className="error-message" style={{
+              color: '#ef4444',
+              backgroundColor: '#fef2f2',
+              border: '1px solid #fecaca',
+              borderRadius: '4px',
+              padding: '8px 12px',
+              marginBottom: '16px',
+              fontSize: '14px'
+            }}>
+              {error}
+            </div>
+          )}
+
           <div className="input-group">
-            <label htmlFor="login-phone">Enter Mobile Number</label>
+            <label htmlFor="login-phone">Enter Mobile Number (Optional)</label>
             <div className="input-prefix-container">
               <span className="input-prefix">+91</span>
               <input
@@ -43,7 +95,6 @@ const Login = () => {
                 className="input-field with-prefix"
                 placeholder="1234567890"
                 maxLength="10"
-                required
               />
             </div>
           </div>
@@ -74,8 +125,8 @@ const Login = () => {
             />
           </div>
 
-          <button type="submit" className="auth-button">
-            Login
+          <button type="submit" className="auth-button" disabled={loading}>
+            {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
 
