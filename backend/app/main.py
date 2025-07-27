@@ -40,7 +40,7 @@ app.add_middleware(
         "http://127.0.0.1:8080"
     ],
     allow_credentials=True,  # Enable credentials for specific origins
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 

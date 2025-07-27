@@ -14,6 +14,8 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 import json
 import uuid
+import json
+import uuid
 
 from app.db.database import get_db_session
 from app.db.models import (
@@ -44,7 +46,7 @@ class ConnectionManager:
         self.active_connections: dict = {}
 
     async def connect(self, websocket: WebSocket, room_id: str, user_id: str):
-        await websocket.accept()
+        # Don't call accept here since it should already be accepted
         if room_id not in self.active_connections:
             self.active_connections[room_id] = {}
         self.active_connections[room_id][user_id] = websocket
@@ -106,7 +108,7 @@ async def create_public_bargain(
         )
 
     # Set expiry time
-    expires_at = datetime.timezone.utc() + timedelta(
+    expires_at = datetime.now() + timedelta(
         hours=bargain_data.expires_in_hours
     )
 
@@ -217,7 +219,116 @@ async def get_available_public_bargains(
         )
 
     return public_bargains
+@router.post(
+    "/private/create",
+    response_model=BargainRoomResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_private_bargain(
+    bargain_data: BargainRoomCreate,
+    db: AsyncSession = Depends(get_db_session),
+    current_user: BaseUser = Depends(get_current_user),
+):
+    """
+    Create a private bargaining room between specific buyer and seller.
+    """
+    # Check if user is a buyer
+    buyer_result = await db.execute(
+        select(Buyer).where(Buyer.user_id == current_user.user_id)
+    )
+    buyer = buyer_result.scalar_one_or_none()
 
+    if not buyer:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only buyers can initiate private bargains",
+        )
+
+    if not bargain_data.seller_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Seller ID is required for private bargaining",
+        )
+
+    # Verify seller exists
+    seller_result = await db.execute(
+        select(Seller).where(Seller.user_id == bargain_data.seller_id)
+    )
+    seller = seller_result.scalar_one_or_none()
+
+    if not seller:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Seller not found"
+        )
+
+    # Verify product exists and belongs to seller
+    product_result = await db.execute(
+        select(Product).where(
+            and_(
+                Product.product_id == bargain_data.product_id,
+                Product.seller_id == bargain_data.seller_id,
+            )
+        )
+    )
+    product = product_result.scalar_one_or_none()
+
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found or doesn't belong to seller",
+        )
+
+    # Create private bargain room
+    bargain_room = BargainRoom(
+        product_id=bargain_data.product_id,
+        buyer_id=current_user.user_id,
+        seller_id=bargain_data.seller_id,
+        room_type="private",
+        initial_quantity=bargain_data.quantity,
+        initial_bid_price=bargain_data.initial_bid_price,
+        current_bid_price=bargain_data.initial_bid_price,
+        location_pincode=bargain_data.location_pincode,
+    )
+
+    db.add(bargain_room)
+    await db.commit()
+    await db.refresh(bargain_room)
+
+    return bargain_room
+@router.get("/my-bargains", response_model=List[BargainRoomResponse])
+async def get_my_bargains(
+    room_type: Optional[str] = Query(None, pattern="^(public|private)$"),
+    status: Optional[str] = Query(None, pattern="^(active|closed|accepted|rejected)$"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db_session),
+    current_user: BaseUser = Depends(get_current_user),
+):
+    """
+    Get all bargaining rooms where the current user is involved.
+    """
+    # Build query for rooms where user is buyer or seller
+    query = select(BargainRoom).where(
+        or_(
+            BargainRoom.buyer_id == current_user.user_id,
+            BargainRoom.seller_id == current_user.user_id,
+        )
+    )
+
+    # Add filters
+    if room_type:
+        query = query.where(BargainRoom.room_type == room_type)
+
+    if status:
+        query = query.where(BargainRoom.status == status)
+
+    # Add pagination and ordering
+    query = query.order_by(desc(BargainRoom.updated_at)).offset(skip).limit(limit)
+
+    result = await db.execute(query)
+    bargain_rooms = result.scalars().all()
+
+    return bargain_rooms
 
 @router.post(
     "/public/{room_id}/respond",
@@ -306,82 +417,7 @@ async def respond_to_public_bargain(
 # === PRIVATE BARGAINING ENDPOINTS ===
 
 
-@router.post(
-    "/private/create",
-    response_model=BargainRoomResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-async def create_private_bargain(
-    bargain_data: BargainRoomCreate,
-    db: AsyncSession = Depends(get_db_session),
-    current_user: BaseUser = Depends(get_current_user),
-):
-    """
-    Create a private bargaining room between specific buyer and seller.
-    """
-    # Check if user is a buyer
-    buyer_result = await db.execute(
-        select(Buyer).where(Buyer.user_id == current_user.user_id)
-    )
-    buyer = buyer_result.scalar_one_or_none()
 
-    if not buyer:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only buyers can initiate private bargains",
-        )
-
-    if not bargain_data.seller_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Seller ID is required for private bargaining",
-        )
-
-    # Verify seller exists
-    seller_result = await db.execute(
-        select(Seller).where(Seller.user_id == bargain_data.seller_id)
-    )
-    seller = seller_result.scalar_one_or_none()
-
-    if not seller:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Seller not found"
-        )
-
-    # Verify product exists and belongs to seller
-    product_result = await db.execute(
-        select(Product).where(
-            and_(
-                Product.product_id == bargain_data.product_id,
-                Product.seller_id == bargain_data.seller_id,
-            )
-        )
-    )
-    product = product_result.scalar_one_or_none()
-
-    if not product:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Product not found or doesn't belong to seller",
-        )
-
-    # Create private bargain room
-    bargain_room = BargainRoom(
-        product_id=bargain_data.product_id,
-        buyer_id=current_user.user_id,
-        seller_id=bargain_data.seller_id,
-        room_type="private",
-        initial_quantity=bargain_data.quantity,
-        initial_bid_price=bargain_data.initial_bid_price,
-        current_bid_price=bargain_data.initial_bid_price,
-        location_pincode=bargain_data.location_pincode,
-    )
-
-    db.add(bargain_room)
-    await db.commit()
-    await db.refresh(bargain_room)
-
-    return bargain_room
 
 
 @router.post(
@@ -544,6 +580,8 @@ async def accept_bargain(
     }
 
 
+
+
 @router.get("/{room_id}", response_model=BargainRoomWithDetailsResponse)
 async def get_bargain_room_details(
     room_id: str,
@@ -629,42 +667,6 @@ async def get_bargain_room_details(
     )
 
 
-@router.get("/my-bargains", response_model=List[BargainRoomResponse])
-async def get_my_bargains(
-    room_type: Optional[str] = Query(None, pattern="^(public|private)$"),
-    status: Optional[str] = Query(None, pattern="^(active|closed|accepted|rejected)$"),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
-    db: AsyncSession = Depends(get_db_session),
-    current_user: BaseUser = Depends(get_current_user),
-):
-    """
-    Get all bargaining rooms where the current user is involved.
-    """
-    # Build query for rooms where user is buyer or seller
-    query = select(BargainRoom).where(
-        or_(
-            BargainRoom.buyer_id == current_user.user_id,
-            BargainRoom.seller_id == current_user.user_id,
-        )
-    )
-
-    # Add filters
-    if room_type:
-        query = query.where(BargainRoom.room_type == room_type)
-
-    if status:
-        query = query.where(BargainRoom.status == status)
-
-    # Add pagination and ordering
-    query = query.order_by(desc(BargainRoom.updated_at)).offset(skip).limit(limit)
-
-    result = await db.execute(query)
-    bargain_rooms = result.scalars().all()
-
-    return bargain_rooms
-
-
 # === WEBSOCKET AUTHENTICATION ===
 
 
@@ -673,57 +675,56 @@ async def get_user_from_websocket_token(
 ) -> Optional[BaseUser]:
     """
     Extract and validate JWT token from WebSocket connection.
-    Token can be sent via:
-    1. Query parameter: ws://localhost:8000/bargain/{room_id}/ws?token=jwt_token
-    2. First message after connection: {"type": "auth", "token": "jwt_token"}
     """
-    from app.core.security import decode_access_token
+    try:
+        import jwt as pyjwt  # PyJWT library
+    except ImportError:
+        print("PyJWT library not installed. Run: pip install PyJWT")
+        await websocket.close(code=4001, reason="JWT library not available")
+        return None
+        
     from sqlalchemy import select
-
+    
     # Try to get token from query parameters first
     token = websocket.query_params.get("token")
 
     if not token:
-        # If no token in query params, wait for auth message
-        try:
-            await websocket.accept()
-            data = await websocket.receive_text()
-            auth_message = json.loads(data)
-
-            if auth_message.get("type") == "auth":
-                token = auth_message.get("token")
-            else:
-                await websocket.send_text(
-                    json.dumps(
-                        {
-                            "type": "error",
-                            "message": 'Authentication required. Send: {"type": "auth", "token": "your_jwt_token"}',
-                        }
-                    )
-                )
-                await websocket.close()
-                return None
-        except Exception:
-            await websocket.close()
-            return None
-    else:
-        await websocket.accept()
-
-    if not token:
-        await websocket.send_text(
-            json.dumps({"type": "error", "message": "No authentication token provided"})
-        )
-        await websocket.close()
+        await websocket.close(code=4001, reason="No authentication token provided")
         return None
 
-    # Decode and validate token
     try:
-        payload = decode_access_token(token)
+        # Accept the WebSocket connection first
+        await websocket.accept()
+        
+        # Get the secret key - let's try to import it properly
+        try:
+            from app.core.config import settings
+            secret_key = settings.SECRET_KEY
+        except ImportError:
+            try:
+                from app.core.config import SECRET_KEY
+                secret_key = SECRET_KEY
+            except ImportError:
+                try:
+                    # Try different config patterns
+                    from app.core import config
+                    secret_key = "your_very_secret_key_here_please_change_this_in_production"
+                except ImportError:
+                    # Last resort - check environment or use a default for testing
+                    import os
+                    secret_key = os.getenv("SECRET_KEY", "your_very_secret_key_here_please_change_this_in_production")
+                    print(f"Using fallback SECRET_KEY from environment or default")
+        
+        print(f"Using SECRET_KEY for JWT verification")
+        
+        # Decode JWT token
+        payload = pyjwt.decode(token, secret_key, algorithms=["HS256"])
         email = payload.get("sub")
+        user_id = payload.get("user_id")
 
         if not email:
             await websocket.send_text(
-                json.dumps({"type": "error", "message": "Invalid token"})
+                json.dumps({"type": "error", "message": "Invalid token - no email"})
             )
             await websocket.close()
             return None
@@ -752,7 +753,20 @@ async def get_user_from_websocket_token(
 
         return user
 
+    except pyjwt.ExpiredSignatureError:
+        await websocket.send_text(
+            json.dumps({"type": "error", "message": "Token has expired"})
+        )
+        await websocket.close()
+        return None
+    except pyjwt.InvalidTokenError as e:
+        await websocket.send_text(
+            json.dumps({"type": "error", "message": f"Invalid token: {str(e)}"})
+        )
+        await websocket.close()
+        return None
     except Exception as e:
+        print(f"Authentication error: {str(e)}")
         await websocket.send_text(
             json.dumps({"type": "error", "message": f"Authentication failed: {str(e)}"})
         )
@@ -793,50 +807,33 @@ async def verify_room_access(user: BaseUser, room_id: str, db: AsyncSession) -> 
 async def websocket_endpoint(websocket: WebSocket, room_id: str):
     """
     WebSocket endpoint for real-time bargaining updates.
-
-    What this endpoint does:
-    1. **Real-time Bidding**: Users see new bids instantly without refreshing
-    2. **Live Chat**: Send and receive messages during bargaining
-    3. **Status Updates**: Get notified when bargains are accepted/rejected
-    4. **Connection Management**: Handles multiple users in the same room
-    5. **Authentication**: Secure access with JWT tokens
-
-    Connection Methods:
-    - Via query param: ws://localhost:8000/bargain/{room_id}/ws?token=your_jwt_token
-    - Via first message: Connect first, then send {"type": "auth", "token": "your_jwt_token"}
-
-    Message Types Received:
-    - {"type": "auth", "token": "jwt_token"} - Authenticate connection
-    - {"type": "ping"} - Keep connection alive
-    - {"type": "typing", "is_typing": true} - Show typing indicators
-
-    Message Types Sent:
-    - {"type": "auth_success"} - Authentication successful
-    - {"type": "new_bid", "bid": {...}} - New bid placed
-    - {"type": "new_message", "message": {...}} - New chat message
-    - {"type": "bargain_accepted", "accepted_bid_id": "..."} - Deal closed
-    - {"type": "user_joined", "user_id": "..."} - User joined room
-    - {"type": "user_left", "user_id": "..."} - User left room
-    - {"type": "typing", "user_id": "...", "is_typing": true} - Typing indicator
-    - {"type": "error", "message": "..."} - Error occurred
     """
+    print(f"WebSocket connection attempt for room: {room_id}")
+    print(f"WebSocket headers: {websocket.headers}")
+    print(f"WebSocket query params: {websocket.query_params}")
+    
     db = None
     user = None
 
     try:
-        # Get database session
-        async for session in get_db_session():
-            db = session
-            break
+        # Get database session - create a new session instead of using the generator
+        from app.db.database import AsyncSessionLocal
+        db = AsyncSessionLocal()
 
-        # Authenticate user
+        print("Database session obtained")
+
+        # Authenticate user (this will accept the WebSocket and authenticate)
         user = await get_user_from_websocket_token(websocket, db)
         if not user:
+            print("Authentication failed")
             return  # Connection already closed in auth function
+
+        print(f"User authenticated: {user.email}")
 
         # Verify room access
         has_access = await verify_room_access(user, room_id, db)
         if not has_access:
+            print(f"Access denied for user {user.email} to room {room_id}")
             await websocket.send_text(
                 json.dumps(
                     {
@@ -848,9 +845,15 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
             await websocket.close()
             return
 
+        print(f"Access granted for user {user.email} to room {room_id}")
+
         # Connect user to room
         user_id = str(user.user_id)
-        await manager.connect(websocket, room_id, user_id)
+        if room_id not in manager.active_connections:
+            manager.active_connections[room_id] = {}
+        manager.active_connections[room_id][user_id] = websocket
+
+        print(f"User {user_id} connected to room {room_id}")
 
         # Notify other users that someone joined
         await manager.send_to_room(
@@ -883,127 +886,151 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
             )
         )
 
+        print("Initial room data sent")
+
         # Listen for messages
         while True:
-            data = await websocket.receive_text()
-            message_data = json.loads(data)
-            message_type = message_data.get("type")
+            try:
+                data = await websocket.receive_text()
+                message_data = json.loads(data)
+                message_type = message_data.get("type")
 
-            if message_type == "ping":
-                # Respond to ping to keep connection alive
-                await websocket.send_text(
-                    json.dumps(
-                        {"type": "pong", "timestamp": datetime.utcnow().isoformat()}
+                print(f"Received message type: {message_type}")
+
+                if message_type == "ping":
+                    # Respond to ping to keep connection alive
+                    await websocket.send_text(
+                        json.dumps(
+                            {"type": "pong", "timestamp": datetime.utcnow().isoformat()}
+                        )
                     )
-                )
 
-            elif message_type == "typing":
-                # Broadcast typing indicator to other users
-                await manager.send_to_room(
-                    room_id,
-                    {
-                        "type": "typing",
-                        "user_id": user_id,
-                        "is_typing": message_data.get("is_typing", False),
-                        "timestamp": datetime.utcnow().isoformat(),
-                    },
-                )
-
-            elif message_type == "chat_message":
-                # Handle chat messages during bargaining
-                content = message_data.get("content", "").strip()
-                if content:
-                    # Save message to database
-                    chat_message = BargainMessage(
-                        room_id=room_id,
-                        user_id=user.user_id,
-                        message_type="text",
-                        content=content,
-                    )
-                    db.add(chat_message)
-                    await db.commit()
-                    await db.refresh(chat_message)
-
-                    # Broadcast to all users in room
+                elif message_type == "typing":
+                    # Broadcast typing indicator to other users
                     await manager.send_to_room(
                         room_id,
                         {
-                            "type": "new_message",
-                            "message": {
-                                "message_id": str(chat_message.message_id),
-                                "user_id": user_id,
-                                "content": content,
-                                "created_at": chat_message.created_at.isoformat(),
-                            },
+                            "type": "typing",
+                            "user_id": user_id,
+                            "is_typing": message_data.get("is_typing", False),
+                            "timestamp": datetime.utcnow().isoformat(),
                         },
                     )
 
-            elif message_type == "get_recent_activity":
-                # Send recent bids and messages to user
-                bids_result = await db.execute(
-                    select(BargainBid)
-                    .where(BargainBid.room_id == room_id)
-                    .order_by(desc(BargainBid.created_at))
-                    .limit(10)
-                )
-                recent_bids = bids_result.scalars().all()
+                elif message_type == "chat_message":
+                    # Handle chat messages during bargaining
+                    content = message_data.get("content", "").strip()
+                    if content:
+                        # Save message to database
+                        chat_message = BargainMessage(
+                            room_id=room_id,
+                            user_id=user.user_id,
+                            message_type="text",
+                            content=content,
+                        )
+                        db.add(chat_message)
+                        await db.commit()
+                        await db.refresh(chat_message)
 
-                messages_result = await db.execute(
-                    select(BargainMessage)
-                    .where(BargainMessage.room_id == room_id)
-                    .order_by(desc(BargainMessage.created_at))
-                    .limit(20)
-                )
-                recent_messages = messages_result.scalars().all()
+                        # Broadcast to all users in room
+                        await manager.send_to_room(
+                            room_id,
+                            {
+                                "type": "new_message",
+                                "message": {
+                                    "message_id": str(chat_message.message_id),
+                                    "user_id": user_id,
+                                    "content": content,
+                                    "created_at": chat_message.created_at.isoformat(),
+                                },
+                            },
+                        )
 
-                await websocket.send_text(
-                    json.dumps(
-                        {
-                            "type": "recent_activity",
-                            "bids": [
-                                {
-                                    "bid_id": str(bid.bid_id),
-                                    "user_type": bid.user_type,
-                                    "bid_price": float(bid.bid_price),
-                                    "quantity": bid.quantity,
-                                    "message": bid.message,
-                                    "created_at": bid.created_at.isoformat(),
-                                }
-                                for bid in recent_bids
-                            ],
-                            "messages": [
-                                {
-                                    "message_id": str(msg.message_id),
-                                    "user_id": str(msg.user_id),
-                                    "content": msg.content,
-                                    "created_at": msg.created_at.isoformat(),
-                                }
-                                for msg in recent_messages
-                            ],
-                        }
+                elif message_type == "get_recent_activity":
+                    # Send recent bids and messages to user
+                    bids_result = await db.execute(
+                        select(BargainBid)
+                        .where(BargainBid.room_id == room_id)
+                        .order_by(desc(BargainBid.created_at))
+                        .limit(10)
                     )
-                )
+                    recent_bids = bids_result.scalars().all()
 
-            else:
-                # Unknown message type
-                await websocket.send_text(
-                    json.dumps(
-                        {
-                            "type": "error",
-                            "message": f"Unknown message type: {message_type}",
-                        }
+                    messages_result = await db.execute(
+                        select(BargainMessage)
+                        .where(BargainMessage.room_id == room_id)
+                        .order_by(desc(BargainMessage.created_at))
+                        .limit(20)
                     )
-                )
+                    recent_messages = messages_result.scalars().all()
+
+                    await websocket.send_text(
+                        json.dumps(
+                            {
+                                "type": "recent_activity",
+                                "bids": [
+                                    {
+                                        "bid_id": str(bid.bid_id),
+                                        "user_type": bid.user_type,
+                                        "bid_price": float(bid.bid_price),
+                                        "quantity": bid.quantity,
+                                        "message": bid.message,
+                                        "created_at": bid.created_at.isoformat(),
+                                    }
+                                    for bid in recent_bids
+                                ],
+                                "messages": [
+                                    {
+                                        "message_id": str(msg.message_id),
+                                        "user_id": str(msg.user_id),
+                                        "content": msg.content,
+                                        "created_at": msg.created_at.isoformat(),
+                                    }
+                                    for msg in recent_messages
+                                ],
+                            }
+                        )
+                    )
+
+                else:
+                    # Unknown message type
+                    await websocket.send_text(
+                        json.dumps(
+                            {
+                                "type": "error",
+                                "message": f"Unknown message type: {message_type}",
+                            }
+                        )
+                    )
+
+            except WebSocketDisconnect:
+                print(f"WebSocket disconnected for user {user_id}")
+                break
+            except Exception as e:
+                print(f"Error processing WebSocket message: {e}")
+                try:
+                    await websocket.send_text(
+                        json.dumps(
+                            {
+                                "type": "error", 
+                                "message": "Error processing message"
+                            }
+                        )
+                    )
+                except:
+                    break
 
     except WebSocketDisconnect:
-        pass  # Normal disconnect
+        print("WebSocket disconnect during setup")
     except Exception as e:
         # Log error and close connection
-        print(f"WebSocket error: {e}")
+        print(f"WebSocket error during setup: {e}")
         try:
-            await websocket.send_text(
-                json.dumps({"type": "error", "message": "Internal server error"})
-            )
+            if websocket.client_state != 3:  # Not DISCONNECTED
+                await websocket.send_text(
+                    json.dumps({"type": "error", "message": "Internal server error"})
+                )
+                await websocket.close()
         except:
             pass
     finally:
@@ -1011,6 +1038,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
         if user:
             user_id = str(user.user_id)
             manager.disconnect(room_id, user_id)
+            print(f"Cleaned up connection for user {user_id}")
 
             # Notify other users that someone left
             try:
@@ -1026,4 +1054,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                 pass  # Room might be empty now
 
         if db:
-            await db.close()
+            try:
+                await db.close()
+            except:
+                pass  # Session might already be closed
