@@ -1,21 +1,18 @@
 /* General Container & Layout */
 .order-tracking-container {
     min-height: 100vh;
-    background-color: #f9fafb;
-    /* gray-50 */
-    font-family: sans-serif;
+    background-color: var(--gray-50);
+    font-family: var(--font-sans);
 }
 
 .content-area {
-    padding: 1rem;
-    /* p-4 */
+    padding: var(--space-4);
 }
 
 .orders-list {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    /* space-y-4 */
+    gap: var(--space-4);
 }
 
 /* Header & Tabs */

@@ -22,7 +22,9 @@ import DigitalKhata from "./pages/DigitalKhata/DigitalKhata.jsx";
 import Navigation from "./pages/Navigation/Navigation.jsx";
 import BargainDashboard from "./components/Bargain/BargainDashboard.jsx";
 
-// Import your main CSS file
+// Import your main CSS files
+import "./styles/variables.css";
+import "./styles/common.css";
 import "./App.css";
 
 const ProtectedRoutes = ({ userRole, isAuthenticated }) => {

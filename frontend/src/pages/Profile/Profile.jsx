@@ -1,51 +1,52 @@
-import { useState } from 'react';
-import './Profile.css';
+import { useState } from "react";
+import "./Profile.css";
+
+import Header from "../../components/Header/Header.jsx";
 
 const Profile = ({ userRole, onLogout }) => {
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState("profile");
   const [profileData, setProfileData] = useState({
-    name: 'Rajesh Kumar',
-    phone: '+91 98765 43210',
-    email: 'rajesh.kumar@email.com',
-    businessName: userRole === 'buyer' ? 'Kumar Chaat Corner' : 'Kumar Fresh Vegetables',
-    address: 'Shop 15, Main Market, Karol Bagh, New Delhi - 110005',
-    gst: userRole === 'seller' ? '07AAAFR2938D1Z8' : '',
-    bankAccount: '1234567890',
-    ifsc: 'HDFC0001234'
+    name: "Rajesh Kumar",
+    phone: "+91 98765 43210",
+    email: "rajesh.kumar@email.com",
+    businessName:
+      userRole === "buyer" ? "Kumar Chaat Corner" : "Kumar Fresh Vegetables",
+    address: "Shop 15, Main Market, Karol Bagh, New Delhi - 110005",
+    gst: userRole === "seller" ? "07AAAFR2938D1Z8" : "",
+    bankAccount: "1234567890",
+    ifsc: "HDFC0001234",
   });
-  
+
   const [isEditing, setIsEditing] = useState(false);
 
   const handleInputChange = (e) => {
     setProfileData({
       ...profileData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
   const handleSave = () => {
     // Simulate saving profile data
     setIsEditing(false);
-    alert('Profile updated successfully!');
+    alert("Profile updated successfully!");
   };
 
   const renderProfileTab = () => (
     <div className="profile-content">
       <div className="profile-header">
-        <div className="profile-avatar">
-          {profileData.name.charAt(0)}
-        </div>
+        <div className="profile-avatar">{profileData.name.charAt(0)}</div>
         <div className="profile-info">
           <h2>{profileData.name}</h2>
           <p className="role-badge">
-            {userRole === 'buyer' ? '🛒 Vendor' : '📦 Supplier'}
+            {userRole === "buyer" ? "🛒 Vendor" : "📦 Supplier"}
           </p>
         </div>
-        <button 
+        <button
           className="btn btn-secondary btn-small"
           onClick={() => setIsEditing(!isEditing)}
         >
-          {isEditing ? 'Cancel' : 'Edit'}
+          {isEditing ? "Cancel" : "Edit"}
         </button>
       </div>
 
@@ -74,7 +75,7 @@ const Profile = ({ userRole, onLogout }) => {
               />
             </div>
           </div>
-          
+
           <div className="input-group">
             <label>Email Address</label>
             <input
@@ -99,7 +100,7 @@ const Profile = ({ userRole, onLogout }) => {
               disabled={!isEditing}
             />
           </div>
-          
+
           <div className="input-group">
             <label>Business Address</label>
             <textarea
@@ -111,7 +112,7 @@ const Profile = ({ userRole, onLogout }) => {
             />
           </div>
 
-          {userRole === 'seller' && (
+          {userRole === "seller" && (
             <div className="input-group">
               <label>GST Number</label>
               <input
@@ -165,30 +166,30 @@ const Profile = ({ userRole, onLogout }) => {
   const renderAnalyticsTab = () => (
     <div className="analytics-content">
       <h2>📊 Your Analytics</h2>
-      
+
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-icon">📈</div>
           <div className="stat-info">
             <h3>Monthly Orders</h3>
             <div className="stat-value">
-              {userRole === 'buyer' ? '24' : '156'}
+              {userRole === "buyer" ? "24" : "156"}
             </div>
             <div className="stat-change positive">+12%</div>
           </div>
         </div>
-        
+
         <div className="stat-card">
           <div className="stat-icon">💰</div>
           <div className="stat-info">
-            <h3>Monthly {userRole === 'buyer' ? 'Spending' : 'Revenue'}</h3>
+            <h3>Monthly {userRole === "buyer" ? "Spending" : "Revenue"}</h3>
             <div className="stat-value">
-              ₹{userRole === 'buyer' ? '8,450' : '45,600'}
+              ₹{userRole === "buyer" ? "8,450" : "45,600"}
             </div>
             <div className="stat-change positive">+8%</div>
           </div>
         </div>
-        
+
         <div className="stat-card">
           <div className="stat-icon">⭐</div>
           <div className="stat-info">
@@ -197,7 +198,7 @@ const Profile = ({ userRole, onLogout }) => {
             <div className="stat-change positive">+0.2</div>
           </div>
         </div>
-        
+
         <div className="stat-card">
           <div className="stat-icon">💳</div>
           <div className="stat-info">
@@ -213,7 +214,9 @@ const Profile = ({ userRole, onLogout }) => {
         <div className="chart-placeholder">
           <p>📊 Interactive charts would be displayed here showing:</p>
           <ul>
-            <li>{userRole === 'buyer' ? 'Purchase patterns' : 'Sales trends'}</li>
+            <li>
+              {userRole === "buyer" ? "Purchase patterns" : "Sales trends"}
+            </li>
             <li>Popular products</li>
             <li>Peak order times</li>
             <li>Seasonal variations</li>
@@ -226,7 +229,7 @@ const Profile = ({ userRole, onLogout }) => {
   const renderSettingsTab = () => (
     <div className="settings-content">
       <h2>⚙️ Settings</h2>
-      
+
       <div className="settings-section">
         <h3>Notifications</h3>
         <div className="setting-item">
@@ -280,7 +283,9 @@ const Profile = ({ userRole, onLogout }) => {
           <button className="btn btn-secondary">Change Password</button>
         </div>
         <div className="setting-item">
-          <button className="btn btn-secondary">Two-Factor Authentication</button>
+          <button className="btn btn-secondary">
+            Two-Factor Authentication
+          </button>
         </div>
         <div className="setting-item">
           <button className="btn btn-secondary">Download My Data</button>
@@ -295,47 +300,42 @@ const Profile = ({ userRole, onLogout }) => {
           </button>
         </div>
         <div className="setting-item">
-          <button className="btn btn-danger">
-            Delete Account
-          </button>
+          <button className="btn btn-danger">Delete Account</button>
         </div>
       </div>
     </div>
   );
 
   return (
-    <div className="profile">
-      <div className="header">
-        <h1>Profile</h1>
-        <p>Manage your account and preferences</p>
-      </div>
+    <div className="page-container">
+      <Header title="Profile" subtitle="Manage your account and preferences" />
 
-      <div className="container">
+      <div className="profile-container">
         <div className="profile-tabs">
-          <button 
-            className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
-            onClick={() => setActiveTab('profile')}
+          <button
+            className={`tab-btn ${activeTab === "profile" ? "active" : ""}`}
+            onClick={() => setActiveTab("profile")}
           >
             👤 Profile
           </button>
-          <button 
-            className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
-            onClick={() => setActiveTab('analytics')}
+          <button
+            className={`tab-btn ${activeTab === "analytics" ? "active" : ""}`}
+            onClick={() => setActiveTab("analytics")}
           >
             📊 Analytics
           </button>
-          <button 
-            className={`tab-btn ${activeTab === 'settings' ? 'active' : ''}`}
-            onClick={() => setActiveTab('settings')}
+          <button
+            className={`tab-btn ${activeTab === "settings" ? "active" : ""}`}
+            onClick={() => setActiveTab("settings")}
           >
             ⚙️ Settings
           </button>
         </div>
 
         <div className="tab-content">
-          {activeTab === 'profile' && renderProfileTab()}
-          {activeTab === 'analytics' && renderAnalyticsTab()}
-          {activeTab === 'settings' && renderSettingsTab()}
+          {activeTab === "profile" && renderProfileTab()}
+          {activeTab === "analytics" && renderAnalyticsTab()}
+          {activeTab === "settings" && renderSettingsTab()}
         </div>
       </div>
     </div>

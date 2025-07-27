@@ -1,11 +1,20 @@
-import React, { useState } from 'react';
-import { CreditCard, TrendingUp, Calendar, Plus, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
-import './DigitalKhata.css';
+import React, { useState } from "react";
+import {
+  CreditCard,
+  TrendingUp,
+  Calendar,
+  Plus,
+  ArrowUpCircle,
+  ArrowDownCircle,
+} from "lucide-react";
+import "./DigitalKhata.css";
+
+import Header from "../../components/Header/Header.jsx";
 
 // The main component for the Digital Ledger feature
 const DigitalKhata = ({ userRole }) => {
   // State to manage the currently active tab
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState("overview");
 
   // Static data for demonstration purposes
   const creditLimit = 5000;
@@ -16,27 +25,27 @@ const DigitalKhata = ({ userRole }) => {
 
   const transactions = [
     {
-      id: '1',
-      type: 'debit',
+      id: "1",
+      type: "debit",
       amount: 195,
-      description: 'Bought onions, tomatoes',
-      date: '12 Jan 2025',
-      supplier: 'Gupta Traders',
+      description: "Bought onions, tomatoes",
+      date: "12 Jan 2025",
+      supplier: "Gupta Traders",
     },
     {
-      id: '2',
-      type: 'credit',
+      id: "2",
+      type: "credit",
       amount: 500,
-      description: 'Payment made',
-      date: '10 Jan 2025',
+      description: "Payment made",
+      date: "10 Jan 2025",
     },
     {
-      id: '3',
-      type: 'debit',
+      id: "3",
+      type: "debit",
       amount: 380,
-      description: 'Bought spices',
-      date: '08 Jan 2025',
-      supplier: 'Sharma Wholesale',
+      description: "Bought spices",
+      date: "08 Jan 2025",
+      supplier: "Sharma Wholesale",
     },
   ];
 
@@ -45,7 +54,11 @@ const DigitalKhata = ({ userRole }) => {
     <div key={transaction.id} className="card transaction-item">
       <div className="transaction-content">
         <div className={`transaction-icon-container ${transaction.type}`}>
-          {transaction.type === 'credit' ? <ArrowUpCircle size={20} /> : <ArrowDownCircle size={20} />}
+          {transaction.type === "credit" ? (
+            <ArrowUpCircle size={20} />
+          ) : (
+            <ArrowDownCircle size={20} />
+          )}
         </div>
         <div className="transaction-details">
           <div className="font-semibold">{transaction.description}</div>
@@ -55,7 +68,7 @@ const DigitalKhata = ({ userRole }) => {
           <div className="text-sm text-light">{transaction.date}</div>
         </div>
         <div className={`transaction-amount ${transaction.type}`}>
-          {transaction.type === 'credit' ? '+' : '-'}₹{transaction.amount}
+          {transaction.type === "credit" ? "+" : "-"}₹{transaction.amount}
         </div>
       </div>
     </div>
@@ -63,65 +76,78 @@ const DigitalKhata = ({ userRole }) => {
 
   // Helper function to render a single benefit item
   const renderBenefit = (text) => (
-      <div className="benefit-item">
-          <div className="benefit-icon-container">
-              <span className="benefit-tick">✓</span>
-          </div>
-          <span className="text-sm">{text}</span>
+    <div className="benefit-item">
+      <div className="benefit-icon-container">
+        <span className="benefit-tick">✓</span>
       </div>
+      <span className="text-sm">{text}</span>
+    </div>
+  );
+
+  return (
+    <div className="digital-khata-container">
+      <Header title="Digital Khata" showBackButton />
+      {/* ...existing khata UI... */}
+    </div>
   );
 
   return (
     <div className="container">
-      {/* Header Section */}
-      <header className="header">
-        <h1>Digital Ledger</h1>
-        <p>Your financial companion</p>
+      <Header
+        title="Digital Ledger"
+        subtitle="Your financial companion"
+        showBackButton
+      />
 
-        {/* Balance Card */}
-        <div className="balance-card">
-          <div className="balance-row">
-            <div>
-              <div className="balance-label">Current Balance</div>
-              <div className={`balance-amount ${currentBalance < 0 ? 'due' : 'paid'}`}>
-                ₹{Math.abs(currentBalance)}
-                {currentBalance < 0 && <span className="due-label">(Due)</span>}
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="balance-label">Credit Score</div>
-              <div className="credit-score">{creditScore}/900</div>
+      {/* Balance Card */}
+      <div className="balance-card">
+        <div className="balance-row">
+          <div>
+            <div className="balance-label">Current Balance</div>
+            <div
+              className={`balance-amount ${
+                currentBalance < 0 ? "due" : "paid"
+              }`}
+            >
+              ₹{Math.abs(currentBalance)}
+              {currentBalance < 0 && <span className="due-label">(Due)</span>}
             </div>
           </div>
-          
-          {/* Credit Progress Bar */}
-          <div className="credit-bar-container">
-            <div className="credit-bar-info">
-              <span>Partner Credit</span>
-              <span>₹{availableCredit}/₹{creditLimit}</span>
-            </div>
-            <div className="credit-bar-background">
-              <div 
-                className="credit-bar-progress"
-                style={{ width: `${(availableCredit / creditLimit) * 100}%` }}
-              ></div>
-            </div>
+          <div className="text-right">
+            <div className="balance-label">Credit Score</div>
+            <div className="credit-score">{creditScore}/900</div>
           </div>
         </div>
-      </header>
+
+        {/* Credit Progress Bar */}
+        <div className="credit-bar-container">
+          <div className="credit-bar-info">
+            <span>Partner Credit</span>
+            <span>
+              ₹{availableCredit}/₹{creditLimit}
+            </span>
+          </div>
+          <div className="credit-bar-background">
+            <div
+              className="credit-bar-progress"
+              style={{ width: `${(availableCredit / creditLimit) * 100}%` }}
+            ></div>
+          </div>
+        </div>
+      </div>
 
       {/* Tabs Navigation */}
       <nav className="tabs-container">
         <div className="tabs">
           {[
-            { id: 'overview', label: 'Overview' },
-            { id: 'transactions', label: 'Transactions' },
-            { id: 'credit', label: 'Credit' },
+            { id: "overview", label: "Overview" },
+            { id: "transactions", label: "Transactions" },
+            { id: "credit", label: "Credit" },
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
+              className={`tab-button ${activeTab === tab.id ? "active" : ""}`}
             >
               {tab.label}
             </button>
@@ -131,7 +157,7 @@ const DigitalKhata = ({ userRole }) => {
 
       {/* Content Area based on Active Tab */}
       <main className="content">
-        {activeTab === 'overview' && (
+        {activeTab === "overview" && (
           <div className="content-section">
             {/* Quick Actions */}
             <div className="quick-actions">
@@ -168,7 +194,9 @@ const DigitalKhata = ({ userRole }) => {
                 </div>
                 <div>
                   <div className="font-semibold">Payment Reminder</div>
-                  <div className="text-sm text-muted">₹195 due to Gupta Traders</div>
+                  <div className="text-sm text-muted">
+                    ₹195 due to Gupta Traders
+                  </div>
                 </div>
                 <button className="pay-now-button">Pay Now</button>
               </div>
@@ -192,19 +220,19 @@ const DigitalKhata = ({ userRole }) => {
                 <div className="detail-row">
                   <span>Account age</span>
                   <span className="text-blue font-semibold">8 months</span>
-                </div> 
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {activeTab === 'transactions' && (
+        {activeTab === "transactions" && (
           <div className="content-section">
             {transactions.map(renderTransaction)}
           </div>
         )}
 
-        {activeTab === 'credit' && (
+        {activeTab === "credit" && (
           <div className="content-section">
             {/* Credit Limit Card */}
             <div className="credit-limit-card">

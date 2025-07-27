@@ -1,20 +1,21 @@
-import axios from 'axios';
+import axios from "axios";
 
 // Base API configuration
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+const API_BASE_URL = "http://localhost:8000/api/v1";
+// const API_BASE_URL = "http://10.145.113.104:8000/api/v1";
 
 // Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -31,9 +32,9 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Token expired or invalid, redirect to login
-      localStorage.removeItem('token');
-      localStorage.removeItem('userType');
-      window.location.href = '/login';
+      localStorage.removeItem("token");
+      localStorage.removeItem("userType");
+      window.location.href = "/login";
     }
     return Promise.reject(error);
   }
@@ -43,24 +44,24 @@ api.interceptors.response.use(
 export const authAPI = {
   // User Login
   async login(email, password) {
-    const response = await api.post('/login', { email, password });
+    const response = await api.post("/login", { email, password });
     return response.data;
   },
 
   // User Registration
   async register(email, password, mobile_number, user_type) {
-    const response = await api.post('/register', {
+    const response = await api.post("/register", {
       email,
       password,
       mobile_number,
-      user_type
+      user_type,
     });
     return response.data;
   },
 
   // Verify Token
   async verifyToken() {
-    const response = await api.get('/verify-token');
+    const response = await api.get("/verify-token");
     return response.data;
   },
 };
@@ -69,25 +70,25 @@ export const authAPI = {
 export const userAPI = {
   // Get User Profile
   async getProfile() {
-    const response = await api.get('/user/profile');
+    const response = await api.get("/user/profile");
     return response.data;
   },
 
   // Get User Type
   async getUserType() {
-    const response = await api.get('/user/type');
+    const response = await api.get("/user/type");
     return response.data;
   },
 
   // Get Buyer Profile
   async getBuyerProfile() {
-    const response = await api.get('/buyer/profile');
+    const response = await api.get("/buyer/profile");
     return response.data;
   },
 
   // Get Seller Profile
   async getSellerProfile() {
-    const response = await api.get('/seller/profile');
+    const response = await api.get("/seller/profile");
     return response.data;
   },
 };
@@ -96,10 +97,10 @@ export const userAPI = {
 export const productAPI = {
   // Create Product (Seller Only)
   async createProduct(name, category, price) {
-    const response = await api.post('/product/create', {
+    const response = await api.post("/product/create", {
       name,
       category,
-      price
+      price,
     });
     return response.data;
   },
@@ -109,7 +110,7 @@ export const productAPI = {
     const response = await api.put(`/product/update/${productId}`, {
       name,
       category,
-      price
+      price,
     });
     return response.data;
   },
@@ -128,18 +129,20 @@ export const productAPI = {
       category,
       min_price,
       max_price,
-      seller_only = false
+      seller_only = false,
     } = params;
 
     const queryParams = new URLSearchParams({
       skip: skip.toString(),
       limit: limit.toString(),
-      seller_only: seller_only.toString()
+      seller_only: seller_only.toString(),
     });
 
-    if (category) queryParams.append('category', category);
-    if (min_price !== undefined) queryParams.append('min_price', min_price.toString());
-    if (max_price !== undefined) queryParams.append('max_price', max_price.toString());
+    if (category) queryParams.append("category", category);
+    if (min_price !== undefined)
+      queryParams.append("min_price", min_price.toString());
+    if (max_price !== undefined)
+      queryParams.append("max_price", max_price.toString());
 
     const response = await api.get(`/product/?${queryParams}`);
     return response.data;
@@ -152,13 +155,17 @@ export const productAPI = {
 
   // Get Products by Category
   async getProductsByCategory(category, skip = 0, limit = 10) {
-    const response = await api.get(`/product/category/${category}?skip=${skip}&limit=${limit}`);
+    const response = await api.get(
+      `/product/category/${category}?skip=${skip}&limit=${limit}`
+    );
     return response.data;
   },
 
   // Get Products by Seller
   async getProductsBySeller(sellerId, skip = 0, limit = 10) {
-    const response = await api.get(`/product/seller/${sellerId}?skip=${skip}&limit=${limit}`);
+    const response = await api.get(
+      `/product/seller/${sellerId}?skip=${skip}&limit=${limit}`
+    );
     return response.data;
   },
 };
@@ -167,11 +174,11 @@ export const productAPI = {
 export const inventoryAPI = {
   // Add Inventory Batch (Seller Only)
   async addInventory(product_id, quantity, discount, expiry_date) {
-    const response = await api.post('/inventory/add', {
+    const response = await api.post("/inventory/add", {
       product_id,
       quantity,
       discount,
-      expiry_date
+      expiry_date,
     });
     return response.data;
   },
@@ -181,14 +188,16 @@ export const inventoryAPI = {
     const response = await api.put(`/inventory/update/${inventoryId}`, {
       quantity,
       discount,
-      expiry_date
+      expiry_date,
     });
     return response.data;
   },
 
   // Get Product Inventory
   async getProductInventory(productId, show_expired = false) {
-    const response = await api.get(`/inventory/product/${productId}?show_expired=${show_expired}`);
+    const response = await api.get(
+      `/inventory/product/${productId}?show_expired=${show_expired}`
+    );
     return response.data;
   },
 
@@ -198,16 +207,16 @@ export const inventoryAPI = {
       product_name,
       show_expired = false,
       skip = 0,
-      limit = 100
+      limit = 100,
     } = params;
 
     const queryParams = new URLSearchParams({
       show_expired: show_expired.toString(),
       skip: skip.toString(),
-      limit: limit.toString()
+      limit: limit.toString(),
     });
 
-    if (product_name) queryParams.append('product_name', product_name);
+    if (product_name) queryParams.append("product_name", product_name);
 
     const response = await api.get(`/inventory/my-inventory?${queryParams}`);
     return response.data;
@@ -229,10 +238,10 @@ export const inventoryAPI = {
 export const orderAPI = {
   // Create Order (Buyer Only)
   async createOrder(seller_id, estimated_delivery_date, order_items) {
-    const response = await api.post('/order/create', {
+    const response = await api.post("/order/create", {
       seller_id,
       estimated_delivery_date,
-      order_items
+      order_items,
     });
     return response.data;
   },
@@ -241,7 +250,7 @@ export const orderAPI = {
   async updateOrder(orderId, order_status, estimated_delivery_date) {
     const response = await api.put(`/order/update/${orderId}`, {
       order_status,
-      estimated_delivery_date
+      estimated_delivery_date,
     });
     return response.data;
   },
@@ -254,18 +263,14 @@ export const orderAPI = {
 
   // Get All Orders
   async getAllOrders(params = {}) {
-    const {
-      skip = 0,
-      limit = 10,
-      order_status
-    } = params;
+    const { skip = 0, limit = 10, order_status } = params;
 
     const queryParams = new URLSearchParams({
       skip: skip.toString(),
-      limit: limit.toString()
+      limit: limit.toString(),
     });
 
-    if (order_status) queryParams.append('order_status', order_status);
+    if (order_status) queryParams.append("order_status", order_status);
 
     const response = await api.get(`/order/?${queryParams}`);
     return response.data;
@@ -275,33 +280,35 @@ export const orderAPI = {
 // Bargain API functions
 export const bargainAPI = {
   // Create Public Bargain (Buyer Only)
-  async createPublicBargain(product_id, quantity, initial_bid_price, location_pincode, expires_in_hours) {
-    const response = await api.post('/bargain/public/create', {
+  async createPublicBargain(
+    product_id,
+    quantity,
+    initial_bid_price,
+    location_pincode,
+    expires_in_hours
+  ) {
+    const response = await api.post("/bargain/public/create", {
       product_id,
       quantity,
       initial_bid_price,
       location_pincode,
-      expires_in_hours
+      expires_in_hours,
     });
     return response.data;
   },
 
   // Get Available Public Bargains (Seller Only)
   async getAvailablePublicBargains(params = {}) {
-    const {
-      location_pincode,
-      category,
-      skip = 0,
-      limit = 20
-    } = params;
+    const { location_pincode, category, skip = 0, limit = 20 } = params;
 
     const queryParams = new URLSearchParams({
       skip: skip.toString(),
-      limit: limit.toString()
+      limit: limit.toString(),
     });
 
-    if (location_pincode) queryParams.append('location_pincode', location_pincode);
-    if (category) queryParams.append('category', category);
+    if (location_pincode)
+      queryParams.append("location_pincode", location_pincode);
+    if (category) queryParams.append("category", category);
 
     const response = await api.get(`/bargain/public/available?${queryParams}`);
     return response.data;
@@ -312,30 +319,42 @@ export const bargainAPI = {
     const response = await api.post(`/bargain/public/${roomId}/respond`, {
       bid_price,
       quantity,
-      message
+      message,
     });
     return response.data;
   },
 
   // Create Private Bargain (Buyer Only)
-  async createPrivateBargain(product_id, seller_id, quantity, initial_bid_price, location_pincode) {
-    const response = await api.post('/bargain/private/create', {
+  async createPrivateBargain(
+    product_id,
+    seller_id,
+    quantity,
+    initial_bid_price,
+    location_pincode
+  ) {
+    const response = await api.post("/bargain/private/create", {
       product_id,
       seller_id,
       quantity,
       initial_bid_price,
-      location_pincode
+      location_pincode,
     });
     return response.data;
   },
 
   // Place Bid in Room
-  async placeBid(roomId, bid_price, quantity, message, is_counter_offer = true) {
+  async placeBid(
+    roomId,
+    bid_price,
+    quantity,
+    message,
+    is_counter_offer = true
+  ) {
     const response = await api.post(`/bargain/${roomId}/bid`, {
       bid_price,
       quantity,
       message,
-      is_counter_offer
+      is_counter_offer,
     });
     return response.data;
   },
@@ -343,7 +362,7 @@ export const bargainAPI = {
   // Accept Bargain
   async acceptBargain(roomId, bid_id) {
     const response = await api.post(`/bargain/${roomId}/accept`, {
-      bid_id
+      bid_id,
     });
     return response.data;
   },
@@ -356,20 +375,15 @@ export const bargainAPI = {
 
   // Get My Bargains
   async getMyBargains(params = {}) {
-    const {
-      room_type,
-      status,
-      skip = 0,
-      limit = 20
-    } = params;
+    const { room_type, status, skip = 0, limit = 20 } = params;
 
     const queryParams = new URLSearchParams({
       skip: skip.toString(),
-      limit: limit.toString()
+      limit: limit.toString(),
     });
 
-    if (room_type) queryParams.append('room_type', room_type);
-    if (status) queryParams.append('status', status);
+    if (room_type) queryParams.append("room_type", room_type);
+    if (status) queryParams.append("status", status);
 
     const response = await api.get(`/bargain/my-bargains?${queryParams}`);
     return response.data;
@@ -383,25 +397,25 @@ export const apiHelpers = {
     if (error.response?.data?.detail) {
       return error.response.data.detail;
     }
-    return error.message || 'An unexpected error occurred';
+    return error.message || "An unexpected error occurred";
   },
 
   // Format currency
   formatCurrency(amount) {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR'
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
     }).format(amount);
   },
 
   // Format date
   formatDate(dateString) {
-    return new Date(dateString).toLocaleDateString('en-IN');
+    return new Date(dateString).toLocaleDateString("en-IN");
   },
 
   // Format datetime
   formatDateTime(dateString) {
-    return new Date(dateString).toLocaleString('en-IN');
+    return new Date(dateString).toLocaleString("en-IN");
   },
 };
 

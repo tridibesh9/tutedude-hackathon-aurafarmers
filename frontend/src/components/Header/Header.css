@@ -1,0 +1,136 @@
+/* Header Container */
+.header {
+  background-image: linear-gradient(to right, var(--primary), var(--primary-dark));
+  color: white;
+  padding: var(--space-4);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Header Top Section */
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.header-text {
+  flex: 1;
+}
+
+.header-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  margin-bottom: var(--space-1);
+}
+
+.header-subtitle {
+  font-size: 0.875rem;
+  opacity: 0.9;
+  margin: 0;
+}
+
+/* Header Actions */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.notification-button {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: white;
+  padding: var(--space-2);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.notification-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Location Info */
+.location-info {
+  text-align: right;
+}
+
+.location-city {
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.location-area {
+  font-size: 0.75rem;
+  opacity: 0.9;
+}
+
+/* Search Bar */
+.search-bar-container {
+  margin-top: var(--space-2);
+}
+
+.search-bar {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-full);
+  padding: var(--space-2) var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.search-icon {
+  color: white;
+  opacity: 0.7;
+}
+
+.search-input {
+  background: transparent;
+  border: none;
+  color: white;
+  flex: 1;
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.mic-button {
+  background: transparent;
+  border: none;
+  color: white;
+  opacity: 0.7;
+  cursor: pointer;
+  padding: var(--space-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s ease;
+}
+
+.mic-button:hover {
+  opacity: 1;
+}

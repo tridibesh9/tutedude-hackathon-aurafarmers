@@ -8,18 +8,16 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-.dashboard-container {
+.page-container {
     min-height: 100vh;
-    background-color: #f9fafb;
-    /* gray-50 */
+    background-color: var(--gray-50);
 }
 
 /* Header Styles */
 .header {
-    background-image: linear-gradient(to right, #ea580c, #c2410c);
-    /* orange-600 to orange-700 */
+    background-image: linear-gradient(to right, var(--primary), var(--primary-dark));
     color: white;
-    padding: 1rem;
+    padding: var(--space-4);
 }
 
 .header-top {
@@ -165,7 +163,7 @@ body {
 
 .categories-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 0.75rem;
     /* gap-3 */
 }
@@ -290,7 +288,7 @@ body {
 }
 
 /* Trending Section */
-.trending-header {
+.section-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -317,14 +315,21 @@ body {
     /* mr-1 */
 }
 
-.trending-list {
+.section-list {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
     /* space-y-3 */
 }
 
-.trending-item-card {
+.section-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-gap: 0.75rem;
+    /* space-y-3 */
+}
+
+.section-item-card {
     background-color: white;
     padding: 1rem;
     border-radius: 0.75rem;
@@ -335,32 +340,32 @@ body {
     /* border-gray-100 */
 }
 
-.trending-item-content {
+.section-item-content {
     display: flex;
     align-items: center;
     justify-content: space-between;
 }
 
-.trending-item-info {
+.section-item-info {
     display: flex;
     align-items: center;
     gap: 0.75rem;
     /* space-x-3 */
 }
 
-.trending-item-image {
+.section-item-image {
     font-size: 1.5rem;
     /* text-2xl */
 }
 
-.trending-item-name {
+.section-item-name {
     font-weight: 600;
     /* font-semibold */
     color: #1f2937;
     /* text-gray-800 */
 }
 
-.trending-item-price {
+.section-item-price {
     font-size: 0.875rem;
     /* text-sm */
     color: #4b5563;

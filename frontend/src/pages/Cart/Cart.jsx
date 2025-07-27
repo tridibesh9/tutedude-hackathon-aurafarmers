@@ -1,12 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { Minus, Plus, Trash2, CreditCard, Lightbulb, MessageCircle } from 'lucide-react';
-import { orderAPI, productAPI, apiHelpers } from '../../utils/api.js';
-import './Cart.css';
+import React, { useState, useEffect } from "react";
+import {
+  Minus,
+  Plus,
+  Trash2,
+  CreditCard,
+  Lightbulb,
+  MessageCircle,
+} from "lucide-react";
+import { orderAPI, productAPI, apiHelpers } from "../../utils/api.js";
+import Header from "../../components/Header/Header";
+import "./Cart.css";
 
 const Cart = ({ userRole }) => {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [showOptimizer, setShowOptimizer] = useState(false);
   const [useSaathiCredit, setUseSaathiCredit] = useState(false);
 
@@ -17,48 +25,58 @@ const Cart = ({ userRole }) => {
 
   const loadCartFromStorage = () => {
     try {
-      const savedCart = localStorage.getItem('cart');
+      const savedCart = localStorage.getItem("cart");
       if (savedCart) {
         setCartItems(JSON.parse(savedCart));
       }
     } catch (error) {
-      console.error('Error loading cart:', error);
+      console.error("Error loading cart:", error);
     }
   };
 
   const saveCartToStorage = (items) => {
-    localStorage.setItem('cart', JSON.stringify(items));
+    localStorage.setItem("cart", JSON.stringify(items));
   };
 
   const updateQuantity = (productId, change) => {
-    const updatedItems = cartItems.map(item =>
-      item.product_id === productId
-        ? { ...item, quantity: Math.max(0, item.quantity + change) }
-        : item
-    ).filter(item => item.quantity > 0);
-    
+    const updatedItems = cartItems
+      .map((item) =>
+        item.product_id === productId
+          ? { ...item, quantity: Math.max(0, item.quantity + change) }
+          : item
+      )
+      .filter((item) => item.quantity > 0);
+
     setCartItems(updatedItems);
     saveCartToStorage(updatedItems);
   };
 
   const removeItem = (productId) => {
-    const updatedItems = cartItems.filter(item => item.product_id !== productId);
+    const updatedItems = cartItems.filter(
+      (item) => item.product_id !== productId
+    );
     setCartItems(updatedItems);
     saveCartToStorage(updatedItems);
   };
 
   const clearCart = () => {
     setCartItems([]);
-    localStorage.removeItem('cart');
+    localStorage.removeItem("cart");
   };
 
-  const totalAmount = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-  const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
+  const totalAmount = cartItems.reduce(
+    (total, item) => total + item.price * item.quantity,
+    0
+  );
+  const totalItems = cartItems.reduce(
+    (total, item) => total + item.quantity,
+    0
+  );
   const optimizedSavings = Math.floor(totalAmount * 0.05); // 5% potential savings
 
   const handleCheckout = async () => {
     if (cartItems.length === 0) {
-      setError('Your cart is empty');
+      setError("Your cart is empty");
       return;
     }
 
@@ -72,35 +90,36 @@ const Cart = ({ userRole }) => {
     }, {});
 
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
       // Create separate orders for each seller
-      const orderPromises = Object.entries(itemsBySeller).map(([sellerId, items]) => {
-        const orderItems = items.map(item => ({
-          product_id: item.product_id,
-          quantity: item.quantity
-        }));
+      const orderPromises = Object.entries(itemsBySeller).map(
+        ([sellerId, items]) => {
+          const orderItems = items.map((item) => ({
+            product_id: item.product_id,
+            quantity: item.quantity,
+          }));
 
-        // Set delivery date to 3 days from now
-        const deliveryDate = new Date();
-        deliveryDate.setDate(deliveryDate.getDate() + 3);
+          // Set delivery date to 3 days from now
+          const deliveryDate = new Date();
+          deliveryDate.setDate(deliveryDate.getDate() + 3);
 
-        return orderAPI.createOrder(
-          sellerId,
-          deliveryDate.toISOString().split('T')[0],
-          orderItems
-        );
-      });
+          return orderAPI.createOrder(
+            sellerId,
+            deliveryDate.toISOString().split("T")[0],
+            orderItems
+          );
+        }
+      );
 
       await Promise.all(orderPromises);
-      
+
       // Clear cart after successful orders
       clearCart();
-      
-      alert('Orders placed successfully!');
-      window.location.href = '/tracking';
-      
+
+      alert("Orders placed successfully!");
+      window.location.href = "/tracking";
     } catch (error) {
       setError(apiHelpers.handleError(error));
     } finally {
@@ -121,7 +140,7 @@ const Cart = ({ userRole }) => {
     // For now, just navigate to bargain with the first seller
     const firstSellerId = Object.keys(itemsBySeller)[0];
     const firstProduct = itemsBySeller[firstSellerId][0];
-    
+
     if (firstProduct) {
       window.location.href = `/bargain?product_id=${firstProduct.product_id}&seller_id=${firstSellerId}&quantity=${totalItems}`;
     }
@@ -130,60 +149,69 @@ const Cart = ({ userRole }) => {
   // Get product image based on name/category
   const getProductImage = (name) => {
     const lowerName = name.toLowerCase();
-    if (lowerName.includes('onion')) return '🧅';
-    if (lowerName.includes('tomato')) return '🍅';
-    if (lowerName.includes('potato')) return '🥔';
-    if (lowerName.includes('carrot')) return '🥕';
-    if (lowerName.includes('apple')) return '🍎';
-    if (lowerName.includes('banana')) return '🍌';
-    return '🛒';
+    if (lowerName.includes("onion")) return "🧅";
+    if (lowerName.includes("tomato")) return "🍅";
+    if (lowerName.includes("potato")) return "🥔";
+    if (lowerName.includes("carrot")) return "🥕";
+    if (lowerName.includes("apple")) return "🍎";
+    if (lowerName.includes("banana")) return "🍌";
+    return "🛒";
   };
 
   return (
-    <div className="cart-container">
+    <div className="page-container">
       {/* Header */}
-      <div className="cart-header">
-        <h1 className="cart-title">Your Cart</h1>
-        <p className="cart-item-count">{totalItems} Items</p>
-      </div>
+      {userRole === "buyer" ? (
+        <Header
+          title="Cart and Inventory"
+          subtitle="Check your cart and inventory"
+          showSearch
+        />
+      ) : (
+        <Header title="Inventory" subtitle="Check your inventory" showSearch />
+      )}
 
       {/* Error Message */}
       {error && (
-        <div style={{
-          color: '#ef4444',
-          backgroundColor: '#fef2f2',
-          border: '1px solid #fecaca',
-          borderRadius: '8px',
-          padding: '12px',
-          margin: '16px 0',
-          fontSize: '14px'
-        }}>
+        <div
+          style={{
+            color: "#ef4444",
+            backgroundColor: "#fef2f2",
+            border: "1px solid #fecaca",
+            borderRadius: "8px",
+            padding: "12px",
+            margin: "16px 0",
+            fontSize: "14px",
+          }}
+        >
           {error}
         </div>
       )}
 
       {/* Empty Cart State */}
       {cartItems.length === 0 ? (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '300px',
-          fontSize: '16px',
-          color: '#6b7280'
-        }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "300px",
+            fontSize: "16px",
+            color: "#6b7280",
+          }}
+        >
           <p>Your cart is empty</p>
-          <button 
-            onClick={() => window.location.href = '/products'}
+          <button
+            onClick={() => (window.location.href = "/products")}
             style={{
-              marginTop: '12px',
-              padding: '8px 16px',
-              backgroundColor: '#3b82f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer'
+              marginTop: "12px",
+              padding: "8px 16px",
+              backgroundColor: "#3b82f6",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
             }}
           >
             Browse Products
@@ -197,12 +225,16 @@ const Cart = ({ userRole }) => {
               <div key={item.product_id} className="cart-item">
                 <div className="cart-item-details">
                   <div className="item-image-container">
-                    <span className="item-image-emoji">{getProductImage(item.name)}</span>
+                    <span className="item-image-emoji">
+                      {getProductImage(item.name)}
+                    </span>
                   </div>
-                  
+
                   <div className="item-info">
                     <h3 className="item-name">{item.name}</h3>
-                    <p className="item-supplier">Seller: {item.seller_id?.slice(0, 8)}...</p>
+                    <p className="item-supplier">
+                      Seller: {item.seller_id?.slice(0, 8)}...
+                    </p>
                     <p className="item-price">₹{item.price}/unit</p>
                   </div>
 
@@ -242,10 +274,10 @@ const Cart = ({ userRole }) => {
                   onClick={() => setShowOptimizer(!showOptimizer)}
                   className="optimizer-toggle"
                 >
-                  {showOptimizer ? 'Hide' : 'Show'}
+                  {showOptimizer ? "Hide" : "Show"}
                 </button>
               </div>
-              
+
               {showOptimizer && (
                 <div className="optimizer-body">
                   <p className="optimizer-text">
@@ -253,7 +285,9 @@ const Cart = ({ userRole }) => {
                   </p>
                   <div className="optimizer-savings-box">
                     <div className="optimizer-savings-details">
-                      <span className="savings-text">Potential Savings: ₹{optimizedSavings}</span>
+                      <span className="savings-text">
+                        Potential Savings: ₹{optimizedSavings}
+                      </span>
                       <button className="apply-button" onClick={handleBargain}>
                         Start Bargaining
                       </button>
@@ -266,7 +300,7 @@ const Cart = ({ userRole }) => {
             {/* Payment Options */}
             <div className="payment-options-container">
               <h3 className="payment-options-title">Payment Options</h3>
-              
+
               <div className="payment-options-list">
                 <label className="credit-option-label">
                   <input
@@ -290,7 +324,9 @@ const Cart = ({ userRole }) => {
                   <MessageCircle className="bargain-icon" size={20} />
                   <div>
                     <div className="bargain-title">Bulk Order Discount</div>
-                    <div className="bargain-subtitle">Bargain on orders over ₹500</div>
+                    <div className="bargain-subtitle">
+                      Bargain on orders over ₹500
+                    </div>
                   </div>
                   <button className="bargain-button" onClick={handleBargain}>
                     Bargain
@@ -312,14 +348,14 @@ const Cart = ({ userRole }) => {
                 <div className="delivery-charge-value">FREE</div>
               </div>
             </div>
-            
-            <button 
-              className="checkout-button" 
+
+            <button
+              className="checkout-button"
               onClick={handleCheckout}
               disabled={loading}
             >
               <CreditCard size={20} />
-              <span>{loading ? 'Processing...' : 'Proceed to Payment'}</span>
+              <span>{loading ? "Processing..." : "Proceed to Payment"}</span>
             </button>
           </div>
         </>

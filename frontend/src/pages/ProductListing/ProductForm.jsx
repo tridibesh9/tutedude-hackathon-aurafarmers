@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, Trash2 } from 'lucide-react';
 import { productAPI, inventoryAPI, apiHelpers } from '../../utils/api.js';
+import Header from "../../components/Header/Header.jsx";
 
 const ProductForm = () => {
   const navigate = useNavigate();
@@ -143,6 +144,7 @@ const ProductForm = () => {
       boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
     }}>
       {/* Header */}
+      <Header title={isEdit ? "Edit Product" : "Add Product"} showBackButton />
       <div style={{
         display: 'flex',
         alignItems: 'center',

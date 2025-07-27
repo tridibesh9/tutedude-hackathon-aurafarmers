@@ -1,5 +1,6 @@
 /* Google Font Import */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "./styles/variables.css";
 
 /* Base styles */
 body {
@@ -24,4 +25,3 @@ body {
   padding: 1rem;
   box-sizing: border-box;
 }
-

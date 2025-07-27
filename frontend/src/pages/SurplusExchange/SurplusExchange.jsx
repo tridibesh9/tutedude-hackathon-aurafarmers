@@ -1,86 +1,97 @@
-import React, { useState } from 'react';
-import { Plus, Camera, MapPin, Clock, Star } from 'lucide-react';
-import './SurplusExchange.css'; // Import the CSS file
+import React, { useState } from "react";
+import { Plus, Camera, MapPin, Clock, Star } from "lucide-react";
+import Header from "../../components/Header/Header";
+import "./SurplusExchange.css";
 
 const SurplusExchange = () => {
-  const [activeTab, setActiveTab] = useState('buy');
+  const [activeTab, setActiveTab] = useState("buy");
   const [showAddItem, setShowAddItem] = useState(false);
 
   const surplusItems = [
     {
-      id: '1',
-      name: 'Fresh Coriander',
+      id: "1",
+      name: "Fresh Coriander",
       quantity: 2,
-      unit: 'kg',
+      unit: "kg",
       price: 15,
       originalPrice: 25,
-      seller: 'Raj Chaat Wala',
+      seller: "Raj Chaat Wala",
       distance: 0.8,
-      timeLeft: '2 hours',
-      reason: 'Bought extra',
-      image: '🌿',
+      timeLeft: "2 hours",
+      reason: "Bought extra",
+      image: "🌿",
       rating: 4.3,
     },
     {
-      id: '2',
-      name: 'Chopped Onions',
+      id: "2",
+      name: "Chopped Onions",
       quantity: 1,
-      unit: 'kg',
+      unit: "kg",
       price: 20,
       originalPrice: 30,
-      seller: 'Golu Pakode Wala',
+      seller: "Golu Pakode Wala",
       distance: 1.2,
-      timeLeft: '1 hour',
-      reason: 'Closing shop early',
-      image: '🧅',
+      timeLeft: "1 hour",
+      reason: "Closing shop early",
+      image: "🧅",
       rating: 4.6,
     },
   ];
 
   const myListings = [
     {
-      id: '3',
-      name: 'Fresh Tomatoes',
+      id: "3",
+      name: "Fresh Tomatoes",
       quantity: 3,
-      unit: 'kg',
+      unit: "kg",
       price: 22,
       views: 12,
       interested: 3,
-      timeLeft: '4 hours',
+      timeLeft: "4 hours",
     },
   ];
 
   // A helper to prevent background scroll when modal is open
+
   React.useEffect(() => {
-    document.body.style.overflow = showAddItem ? 'hidden' : 'unset';
+    document.body.style.overflow = showAddItem ? "hidden" : "unset";
   }, [showAddItem]);
 
   return (
     <div className="surplus-exchange-container">
-      {/* Header */}
-      <div className="header">
-        <h1 className="header-title">Surplus Exchange</h1>
-        <p className="header-subtitle">Buy or sell surplus goods</p>
-        
-        {/* Tabs */}
-        <div className="tabs-container">
-          <button
-            onClick={() => setActiveTab('buy')}
-            className={`tab-button ${activeTab === 'buy' ? 'tab-button-active-buy' : 'tab-button-inactive'}`}
-          >
-            Buy
-          </button>
-          <button
-            onClick={() => setActiveTab('sell')}
-            className={`tab-button ${activeTab === 'sell' ? 'tab-button-active-sell' : 'tab-button-inactive'}`}
-          >
-            Sell
-          </button>
-        </div>
+      <Header
+        title="Surplus Exchange"
+        subtitle="Buy or sell surplus goods"
+        showSearch
+        searchPlaceholder="Search surplus items..."
+      />
+
+      {/* Tabs */}
+      <div className="tabs-container">
+        <button
+          onClick={() => setActiveTab("buy")}
+          className={`tab-button ${
+            activeTab === "buy"
+              ? "tab-button-active-buy"
+              : "tab-button-inactive"
+          }`}
+        >
+          Buy
+        </button>
+        <button
+          onClick={() => setActiveTab("sell")}
+          className={`tab-button ${
+            activeTab === "sell"
+              ? "tab-button-active-sell"
+              : "tab-button-inactive"
+          }`}
+        >
+          Sell
+        </button>
       </div>
 
       <div className="content-area">
-        {activeTab === 'buy' && (
+        {activeTab === "buy" && (
           <div className="buy-section">
             {/* Info Banner */}
             <div className="info-banner buy-banner">
@@ -96,6 +107,7 @@ const SurplusExchange = () => {
                 {/* Urgency Banner */}
                 <div className="item-card-urgency-banner">
                   ⏰ Ends in {item.timeLeft} - Hurry up!
+                  <Header title="Surplus Exchange" showBackButton />
                 </div>
 
                 <div className="item-card-content">
@@ -112,7 +124,9 @@ const SurplusExchange = () => {
                         </div>
                         <div className="item-rating">
                           <Star className="item-rating-star" size={12} />
-                          <span className="item-rating-text">{item.rating}</span>
+                          <span className="item-rating-text">
+                            {item.rating}
+                          </span>
                         </div>
                       </div>
 
@@ -129,7 +143,9 @@ const SurplusExchange = () => {
 
                       <div className="item-pricing-info">
                         <div>
-                          <div className="item-reason">Reason: {item.reason}</div>
+                          <div className="item-reason">
+                            Reason: {item.reason}
+                          </div>
                           <div className="item-price">
                             <span className="item-original-price">
                               ₹{item.originalPrice}
@@ -138,14 +154,16 @@ const SurplusExchange = () => {
                           </div>
                         </div>
                         <div className="item-availability-right">
-                          <div className="item-availability-label">Available</div>
-                          <div className="item-availability-quantity">{item.quantity} {item.unit}</div>
+                          <div className="item-availability-label">
+                            Available
+                          </div>
+                          <div className="item-availability-quantity">
+                            {item.quantity} {item.unit}
+                          </div>
                         </div>
                       </div>
 
-                      <button className="buy-now-button">
-                        Buy Now
-                      </button>
+                      <button className="buy-now-button">Buy Now</button>
                     </div>
                   </div>
                 </div>
@@ -154,7 +172,7 @@ const SurplusExchange = () => {
           </div>
         )}
 
-        {activeTab === 'sell' && (
+        {activeTab === "sell" && (
           <div className="sell-section">
             {/* Add New Item Button */}
             <button
@@ -173,21 +191,23 @@ const SurplusExchange = () => {
                   <div className="listing-header">
                     <div className="listing-details">
                       <h4 className="listing-name">{item.name}</h4>
-                      <p className="listing-quantity-price">{item.quantity} {item.unit} - ₹{item.price}</p>
+                      <p className="listing-quantity-price">
+                        {item.quantity} {item.unit} - ₹{item.price}
+                      </p>
                     </div>
                     <div className="listing-status">
-                      <div className="listing-time">Ends in {item.timeLeft}</div>
-                      <div className="listing-interested">{item.interested} interested</div>
+                      <div className="listing-time">
+                        Ends in {item.timeLeft}
+                      </div>
+                      <div className="listing-interested">
+                        {item.interested} interested
+                      </div>
                     </div>
                   </div>
 
                   <div className="listing-actions">
-                    <button className="listing-edit-button">
-                      Edit
-                    </button>
-                    <button className="listing-remove-button">
-                      Remove
-                    </button>
+                    <button className="listing-edit-button">Edit</button>
+                    <button className="listing-remove-button">Remove</button>
                   </div>
                 </div>
               ))}
@@ -212,7 +232,7 @@ const SurplusExchange = () => {
         <div className="modal-overlay">
           <div className="modal-content">
             <h3 className="modal-title">Add New Item</h3>
-            
+
             <div className="modal-form">
               <div className="form-group">
                 <label className="form-label">Item Name</label>
@@ -226,11 +246,7 @@ const SurplusExchange = () => {
               <div className="form-grid">
                 <div className="form-group">
                   <label className="form-label">Quantity</label>
-                  <input
-                    type="number"
-                    className="form-input"
-                    placeholder="2"
-                  />
+                  <input type="number" className="form-input" placeholder="2" />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Unit</label>
@@ -244,11 +260,7 @@ const SurplusExchange = () => {
 
               <div className="form-group">
                 <label className="form-label">Price (per unit)</label>
-                <input
-                  type="number"
-                  className="form-input"
-                  placeholder="15"
-                />
+                <input type="number" className="form-input" placeholder="15" />
               </div>
 
               <div className="form-group">

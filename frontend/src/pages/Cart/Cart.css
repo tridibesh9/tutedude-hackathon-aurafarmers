@@ -1,23 +1,30 @@
 /* General Body & Container */
 .cart-container {
     min-height: 100vh;
-    background-color: #f8fafc;
-    padding-bottom: 120px;
+    background-color: var(--gray-50);
+    padding-bottom: var(--space-12);
     max-width: 768px;
     margin: 0 auto;
     animation: fadeIn 0.3s ease-in-out;
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Header */
 .cart-header {
     background-color: white;
-    border-bottom: 1px solid #e5e7eb;
-    padding: 1.5rem;
+    border-bottom: 1px solid var(--gray-200);
+    padding: var(--space-6);
     position: sticky;
     top: 0;
     z-index: 10;
@@ -53,10 +60,10 @@
 /* Individual Cart Item */
 .cart-item {
     background-color: white;
-    border-radius: 1rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(243, 244, 246, 0.5);
-    padding: 1.25rem;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--gray-100);
+    padding: var(--space-5);
     transition: all 0.2s ease-in-out;
     animation: slideIn 0.3s ease-out;
 }
@@ -67,8 +74,15 @@
 }
 
 @keyframes slideIn {
-    from { opacity: 0; transform: translateX(-10px); }
-    to { opacity: 1; transform: translateX(0); }
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
 .cart-item-details {
@@ -203,13 +217,13 @@
 
 /* Smart Cart Optimizer */
 .optimizer-container {
-    background: linear-gradient(135deg, rgba(220, 252, 231, 0.5) 0%, rgba(219, 234, 254, 0.5) 100%);
-    border-radius: 1.25rem;
-    padding: 1.5rem;
-    border: 1px solid rgba(187, 247, 208, 0.5);
+    background: linear-gradient(135deg, var(--success-light) 0%, var(--secondary-light) 100%);
+    border-radius: var(--radius-2xl);
+    padding: var(--space-6);
+    border: 1px solid var(--success-light);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--shadow-lg);
     transition: all 0.3s ease;
     animation: fadeScale 0.3s ease-out;
 }
@@ -248,8 +262,15 @@
 }
 
 @keyframes fadeScale {
-    from { opacity: 0; transform: scale(0.95); }
-    to { opacity: 1; transform: scale(1); }
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 .optimizer-toggle {
