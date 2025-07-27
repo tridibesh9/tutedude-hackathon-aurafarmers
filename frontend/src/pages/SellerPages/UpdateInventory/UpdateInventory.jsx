@@ -50,9 +50,9 @@ const UpdateInventory = () => {
         price: existingItem.price,
         quantity: existingItem.quantity,
         unit: existingItem.unit,
-        discountSingleUser: existingItem.discountSingleUser || "",
-        discountSubscriptionUser: existingItem.discountSubscriptionUser || "",
-        discountMergedOrder: existingItem.discountMergedOrder || "",
+        discountSingleUser: existingItem.discount?.solo_singletime || "",
+        discountSubscriptionUser: existingItem.discount?.subscription || "",
+        discountMergedOrder: existingItem.discount?.group || "",
         expiryValue,
         expiryUnit,
       });

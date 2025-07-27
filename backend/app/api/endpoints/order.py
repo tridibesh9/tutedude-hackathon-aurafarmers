@@ -427,6 +427,73 @@ async def join_group_order(
     
     return participant
 
+@router.get("/group/available", response_model=List[GroupOrderSummary])
+async def get_available_group_orders(
+    seller_id: Optional[uuid.UUID] = None,
+    product_category: Optional[str] = None,
+    max_distance_km: Optional[int] = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db_session),
+    current_user: BaseUser = Depends(get_current_user)
+):
+    """
+    Get available group orders that buyers can join.
+    """
+    # Check if user is a buyer
+    buyer_result = await db.execute(select(Buyer).where(Buyer.user_id == current_user.user_id))
+    buyer = buyer_result.scalar_one_or_none()
+    
+    if not buyer:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only buyers can view available group orders"
+        )
+    
+    # Build query for group orders that are still accepting participants
+    query = select(Order).where(
+        and_(
+            Order.order_type == "group",
+            Order.order_status == "Pending"
+        )
+    )
+    
+    if seller_id:
+        query = query.where(Order.seller_id == seller_id)
+    
+    # Add pagination
+    query = query.offset(skip).limit(limit)
+    
+    result = await db.execute(query)
+    orders = result.scalars().all()
+    
+    group_summaries = []
+    
+    for order in orders:
+        # Get participants count
+        participants_count = await db.execute(
+            select(GroupOrderParticipant).where(GroupOrderParticipant.order_id == order.order_id)
+        )
+        participants = participants_count.scalars().all()
+        
+        total_quantity = sum(p.quantity_share for p in participants) if participants else 0
+        
+        group_summaries.append(GroupOrderSummary(
+            order_id=order.order_id,
+            primary_buyer_id=order.buyer_id,
+            seller_id=order.seller_id,
+            total_participants=len(participants),
+            total_quantity=int(total_quantity),  # Ensure it's an integer
+            total_price=order.total_price,
+            order_status=order.order_status,
+            order_type=order.order_type,
+            participants=[],  # Don't include full participant details in list view
+            estimated_delivery_date=order.estimated_delivery_date,
+            order_date=order.order_date
+        ))
+    
+    return group_summaries
+
 @router.get("/group/{order_id}", response_model=GroupOrderSummary)
 async def get_group_order_details(
     order_id: uuid.UUID,
@@ -554,73 +621,6 @@ async def update_participant_status(
     await db.commit()
     
     return {"message": f"Participant status updated to {new_status}"}
-
-@router.get("/group/available", response_model=List[GroupOrderSummary])
-async def get_available_group_orders(
-    seller_id: Optional[uuid.UUID] = None,
-    product_category: Optional[str] = None,
-    max_distance_km: Optional[int] = None,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
-    db: AsyncSession = Depends(get_db_session),
-    current_user: BaseUser = Depends(get_current_user)
-):
-    """
-    Get available group orders that buyers can join.
-    """
-    # Check if user is a buyer
-    buyer_result = await db.execute(select(Buyer).where(Buyer.user_id == current_user.user_id))
-    buyer = buyer_result.scalar_one_or_none()
-    
-    if not buyer:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only buyers can view available group orders"
-        )
-    
-    # Build query for group orders that are still accepting participants
-    query = select(Order).where(
-        and_(
-            Order.order_type == "group",
-            Order.order_status == "Pending"
-        )
-    )
-    
-    if seller_id:
-        query = query.where(Order.seller_id == seller_id)
-    
-    # Add pagination
-    query = query.offset(skip).limit(limit)
-    
-    result = await db.execute(query)
-    orders = result.scalars().all()
-    
-    group_summaries = []
-    
-    for order in orders:
-        # Get participants count
-        participants_count = await db.execute(
-            select(GroupOrderParticipant).where(GroupOrderParticipant.order_id == order.order_id)
-        )
-        participants = participants_count.scalars().all()
-        
-        total_quantity = sum(p.quantity_share for p in participants)
-        
-        group_summaries.append(GroupOrderSummary(
-            order_id=order.order_id,
-            primary_buyer_id=order.buyer_id,
-            seller_id=order.seller_id,
-            total_participants=len(participants),
-            total_quantity=total_quantity,
-            total_price=order.total_price,
-            order_status=order.order_status,
-            order_type=order.order_type,
-            participants=[],  # Don't include full participant details in list view
-            estimated_delivery_date=order.estimated_delivery_date,
-            order_date=order.order_date
-        ))
-    
-    return group_summaries
 
 @router.get("/{order_id}", response_model=OrderWithItemsResponse)
 async def get_order_details(

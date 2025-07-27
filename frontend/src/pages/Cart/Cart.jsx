@@ -95,33 +95,31 @@ const Cart = ({ userRole }) => {
     try {
       // Create separate orders for each seller
       const orderPromises = Object.entries(itemsBySeller).map(
-        ([sellerId, items]) => {
+        async ([sellerId, items]) => {
+          const orderData = {
+            seller_id: sellerId,
+            estimated_delivery_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
+            order_type: "individual"
+          };
+
           const orderItems = items.map((item) => ({
             product_id: item.product_id,
             quantity: item.quantity,
+            price_per_unit: item.price,
           }));
 
-          // Set delivery date to 3 days from now
-          const deliveryDate = new Date();
-          deliveryDate.setDate(deliveryDate.getDate() + 3);
-
-          return orderAPI.createOrder(
-            sellerId,
-            deliveryDate.toISOString().split("T")[0],
-            orderItems
-          );
+          return orderAPI.createOrder(orderData, orderItems, "solo_singletime");
         }
       );
 
       await Promise.all(orderPromises);
 
-      // Clear cart after successful orders
+      // Clear cart after successful checkout
       clearCart();
-
       alert("Orders placed successfully!");
       window.location.href = "/tracking";
     } catch (error) {
-      setError(apiHelpers.handleError(error));
+      setError("Checkout failed: " + apiHelpers.handleError(error));
     } finally {
       setLoading(false);
     }
